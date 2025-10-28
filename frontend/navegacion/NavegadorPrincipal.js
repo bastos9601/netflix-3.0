@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import Inicio from '../pantallas/inicio';
 import Juegos from '../pantallas/Juegos';
 import NuevosPopulares from '../pantallas/NuevosPopulares';
@@ -15,11 +16,19 @@ import Perfiles from '../pantallas/Perfiles';
 // Navegador mínimo: muestra pantalla de arranque animada y luego Inicio.
 export default function NavegadorPrincipal() {
   const [fase, setFase] = useState('arranque'); // arranque -> presentacion -> registro -> inicio
+  const { token } = useAutenticacion();
 
   useEffect(() => {
     const t = setTimeout(() => setFase('presentacion'), 1800);
     return () => clearTimeout(t);
   }, []);
+
+  // Si el usuario cierra sesión (token null), volver a pantalla de inicio de sesión
+  useEffect(() => {
+    if (fase !== 'arranque' && !token) {
+      setFase('inicio_sesion');
+    }
+  }, [token]);
 
   if (fase === 'arranque') return <Arranque />;
   if (fase === 'presentacion') return (

@@ -51,24 +51,17 @@ export default function Presentacion({ onFinalizar, onComienzaYa, onIniciarSesio
     };
   }, []);
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item, index }) => (
     <SafeAreaView style={[estilos.pantalla, { width }]}> 
-      {/* Fondo de collage de películas */}
+      {/* Fondo específico por diapositiva */}
       <View style={[estilos.fondo, { height: ALTURA_FONDO }]}>
-        <View style={estilos.cuadricula}>
-          {(fondos.length ? fondos : [
-            // Fallback con cuadros si no hay backend
-            null, null, null,
-            null, null, null,
-            null, null, null,
-          ]).map((uri, idx) => (
-            uri ? (
-              <Image key={idx} source={{ uri }} style={[estilos.posterBg, { width: width / 3, height: ALTURA_FONDO / 3 }]} />
-            ) : (
-              <View key={idx} style={[estilos.posterBg, { width: width / 3, height: ALTURA_FONDO / 3, backgroundColor: idx % 2 ? '#1f1f1f' : '#2a2a2a' }]} />
-            )
-          ))}
-        </View>
+        {(() => {
+          const uri = fondos.length ? fondos[index % fondos.length] : null;
+          if (uri) {
+            return <Image source={{ uri }} style={estilos.fondoImagen} resizeMode="cover" />;
+          }
+          return <View style={[estilos.fondoImagen, { backgroundColor: '#1a1a1a' }]} />;
+        })()}
         <View style={estilos.overlay} />
       </View>
 
@@ -124,8 +117,7 @@ const estilos = StyleSheet.create({
   contenedor: { flex: 1, backgroundColor: '#141414' },
   pantalla: { flex: 1, height, paddingHorizontal: 16 },
   fondo: { position: 'absolute', top: 0, left: 0, right: 0 },
-  cuadricula: { flexDirection: 'row', flexWrap: 'wrap' },
-  posterBg: { },
+  fondoImagen: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,20,20,0.65)' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: MARGEN_HEADER },
   logoN: { color: '#E50914', fontSize: 22, fontWeight: '900' },

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ingresarUsuario } from '../servicios/api';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 
 const { width } = Dimensions.get('window');
 
-export default function InicioSesion({ onExito, onCancelar }) {
+export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
   const [correo, setCorreo] = useState('');
   const [clave, setClave] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -14,10 +15,20 @@ export default function InicioSesion({ onExito, onCancelar }) {
 
   return (
     <SafeAreaView style={estilos.pantalla}>
-      <View style={estilos.card}>
-        <Text style={estilos.titulo}>Iniciar sesión</Text>
+      {/* Header */}
+      <View style={estilos.header}>
+        <TouchableOpacity onPress={onCancelar} style={estilos.headerBack}>
+          <Ionicons name="chevron-back" size={22} color="#fff" />
+        </TouchableOpacity>
+        <Text style={estilos.brand}>NETFLIX</Text>
+        <View style={{ width: 22 }} />
+      </View>
+
+      {/* Contenido centrado */}
+      <View style={estilos.contenido}>
+        <View style={estilos.formWrap}>
         <TextInput
-          placeholder="Correo"
+          placeholder="Email o número de celular"
           placeholderTextColor="#8a8a8a"
           style={estilos.input}
           value={correo}
@@ -26,16 +37,18 @@ export default function InicioSesion({ onExito, onCancelar }) {
           autoCapitalize="none"
         />
         <TextInput
-          placeholder="Clave"
+          placeholder="Contraseña"
           placeholderTextColor="#8a8a8a"
           style={estilos.input}
           value={clave}
           onChangeText={setClave}
           secureTextEntry
         />
+
         {error ? <Text style={estilos.error}>{error}</Text> : null}
+
         <TouchableOpacity
-          style={[estilos.boton, enviando && { opacity: 0.75 }]}
+          style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
           disabled={enviando}
           onPress={async () => {
             try {
@@ -60,34 +73,61 @@ export default function InicioSesion({ onExito, onCancelar }) {
             }
           }}
         >
-          <Text style={estilos.botonTxt}>INGRESAR</Text>
+          <Text style={estilos.botonTxt}>Iniciar sesión</Text>
         </TouchableOpacity>
+
+        {enviando ? (
+          <View style={{ alignItems: 'center', marginTop: 10 }}>
+            <ActivityIndicator color="#fff" />
+          </View>
+        ) : null}
+
+        <TouchableOpacity style={estilos.botonGris} onPress={() => Alert.alert('Código de inicio', 'Función no implementada aún')}>
+          <Text style={estilos.botonGrisTxt}>Usar un código de inicio de sesión</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => Alert.alert('Recuperar contraseña', 'Función no implementada aún')}>
+          <Text style={estilos.link}>¿Olvidaste la contraseña?</Text>
+        </TouchableOpacity>
+
+        <View style={{ flexDirection: 'row', marginTop: 18 }}>
+          <Text style={{ color: '#b3b3b3' }}>¿Primera vez en Netflix? </Text>
+          <TouchableOpacity onPress={() => (onIrRegistro ? onIrRegistro() : onCancelar?.())}>
+            <Text style={estilos.link}>Suscríbete ya</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={estilos.disclaimer}>
+          Esta página está protegida por Google reCAPTCHA para comprobar que no eres un robot.
+        </Text>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const estilos = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  card: {
-    width: Math.min(width * 0.92, 420),
-    backgroundColor: '#111',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    borderRadius: 8,
-  },
-  titulo: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginBottom: 12 },
+  pantalla: { flex: 1, backgroundColor: '#000', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 30, },
+  header: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerBack: { padding: 6 },
+  brand: { color: '#E50914', fontWeight: '900', fontSize: 20, letterSpacing: 1 },
+  contenido: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  formWrap: { width: Math.min(width * 0.92, 420), alignSelf: 'center' },
   input: {
-    backgroundColor: '#1f1f1f',
+    backgroundColor: '#0f0f0f',
     borderWidth: 1,
     borderColor: '#333',
     color: '#fff',
     borderRadius: 6,
     paddingHorizontal: 12,
-    height: 42,
-    marginBottom: 10,
+    height: 46,
+    marginBottom: 12,
   },
   error: { color: '#ff6b6b', marginBottom: 8 },
-  boton: { backgroundColor: '#E50914', borderRadius: 6, paddingVertical: 12 },
-  botonTxt: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
+  botonRojo: { backgroundColor: '#E50914', borderRadius: 4, paddingVertical: 12, alignItems: 'center' },
+  botonTxt: { color: '#fff', fontWeight: '700' },
+  botonGris: { backgroundColor: '#333', borderRadius: 4, paddingVertical: 12, alignItems: 'center', marginTop: 12 },
+  botonGrisTxt: { color: '#fff', fontWeight: '700' },
+  link: { color: '#b3b3b3', textDecorationLine: 'underline', marginTop: 14 },
+  disclaimer: { color: '#8a8a8a', fontSize: 12, marginTop: 18, lineHeight: 16 },
 });

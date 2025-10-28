@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { registrarUsuario } from '../servicios/api';
 
 const { width } = Dimensions.get('window');
@@ -13,13 +14,16 @@ export default function Registro({ onCancel, onExito }) {
 
   return (
     <SafeAreaView style={estilos.pantalla}>
-      <View style={estilos.cabecera}>
-        <TouchableOpacity onPress={onCancel} style={estilos.cerrar}>
-          <Text style={estilos.cerrarTxt}>×</Text>
+      {/* Header con flecha para volver */}
+      <View style={estilos.header}>
+        <TouchableOpacity onPress={onCancel} style={estilos.headerBack}>
+          <Ionicons name="chevron-back" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      <View style={estilos.card}>
+      {/* Contenido centrado */}
+      <View style={estilos.contenido}>
+        <View style={estilos.card}>
         <Text style={estilos.titulo}>¿Quieres ver Netflix ya?</Text>
         <Text style={estilos.subtitulo}>Ingresa tu nombre, email y contraseña para crear tu cuenta.</Text>
 
@@ -77,19 +81,19 @@ export default function Registro({ onCancel, onExito }) {
         >
           <Text style={estilos.botonTxt}>Comienza ya</Text>
         </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const estilos = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: '#000' },
-  cabecera: { height: 48, alignItems: 'flex-end', justifyContent: 'center' },
-  cerrar: { paddingHorizontal: 16, paddingVertical: 8 },
-  cerrarTxt: { color: '#bbb', fontSize: 24 },
+  pantalla: { flex: 1, backgroundColor: '#000', paddingHorizontal: 16, paddingTop: 8 },
+  header: { height: 48, justifyContent: 'center'  },
+  headerBack: { paddingHorizontal: 6, paddingVertical: 6, alignSelf: 'flex-start' },
+  contenido: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: {
     width: Math.min(width * 0.92, 420),
-    alignSelf: 'center',
     backgroundColor: '#111',
     paddingHorizontal: 16,
     paddingVertical: 20,
