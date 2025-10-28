@@ -1,0 +1,48 @@
+# General
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Entornos (.env) en cualquier carpeta
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Cachés y builds
+.cache/
+dist/
+build/
+out/
+web-build/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+android/
+ios/
+*.keystore
+
+# Cobertura de tests
+coverage/
+
+# Archivos del SO
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores/IDE
+.vscode/
+.idea/
+*.swp
+
+# Yarn PnP (si aplica)
+.pnp.*
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.cjs
