@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Modal, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Modal, TextInput, Image, Alert } from 'react-native';
 import BarraNavegacion from '../componentes/BarraNavegacion';
-import { obtenerPopulares, buscarContenidos } from '../servicios/api';
+import { obtenerPopulares, buscarContenidos, agregarAMiLista } from '../servicios/api';
 import HeroBanner from '../componentes/HeroBanner';
 import FilaHorizontal from '../componentes/FilaHorizontal';
 import DetalleContenido from './DetalleContenido';
+import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 
 // Lista base de categorías (TMDB géneros aproximados en español)
 const CATEGORIAS = [
@@ -14,6 +15,7 @@ const CATEGORIAS = [
 ];
 
 export default function Inicio({ onOpenBuscar }) {
+  const { token, perfilActual } = useAutenticacion();
   const [hero, setHero] = useState(null);
   const [tendencias, setTendencias] = useState([]);
   const [peliculasPop, setPeliculasPop] = useState([]);
@@ -70,10 +72,33 @@ export default function Inicio({ onOpenBuscar }) {
   }, [timeoutId]);
 
   const onPlay = (item) => {
-    // Próximo: reproducir trailer o contenido
+    // Abrir el detalle del contenido con el reproductor activado
+    setDetalleItem(item);
   };
-  const onMyList = (item) => {
-    // Próximo: gestionar lista del usuario
+  
+  const onMyList = async (item) => {
+    // Agregar contenido a Mi Lista
+    if (!token || !perfilActual?.id) {
+      Alert.alert('Error', 'Debes iniciar sesión y seleccionar un perfil para agregar contenido a Mi Lista');
+      return;
+    }
+
+    try {
+      await agregarAMiLista(token, perfilActual.id, {
+        tipo: item.tipo,
+        contenido_id: item.id,
+        titulo: item.titulo,
+        poster: item.poster
+      });
+      Alert.alert('Éxito', `"${item.titulo}" agregado a Mi Lista`);
+    } catch (error) {
+      // Si ya está en la lista, mostrar mensaje informativo
+      if (error.message.includes('Ya está en Mi Lista')) {
+        Alert.alert('Información', `"${item.titulo}" ya está en Mi Lista`);
+      } else {
+        Alert.alert('Error', error.message || 'Error al agregar a Mi Lista');
+      }
+    }
   };
   const onPressItem = (item) => {
     setMostrarBuscador(false);

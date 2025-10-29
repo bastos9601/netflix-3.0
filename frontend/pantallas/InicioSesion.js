@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ingresarUsuario } from '../servicios/api';
+import { ingresarUsuario, solicitarCodigoLogin, ingresarConCodigo, solicitarResetClave, restablecerClave } from '../servicios/api';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 
 const { width } = Dimensions.get('window');
@@ -11,6 +11,13 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
   const [clave, setClave] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
+  const [modo, setModo] = useState('password'); // 'password' | 'codigo' | 'reset'
+  const [codigo, setCodigo] = useState('');
+  const [codigoEnviado, setCodigoEnviado] = useState(false);
+  const [tokenReset, setTokenReset] = useState('');
+  const [nuevaClave, setNuevaClave] = useState('');
+  const [mensaje, setMensaje] = useState('');
+  const [resetEnviado, setResetEnviado] = useState(false);
   const { setToken } = useAutenticacion();
 
   return (
@@ -27,54 +34,218 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
       {/* Contenido centrado */}
       <View style={estilos.contenido}>
         <View style={estilos.formWrap}>
-        <TextInput
-          placeholder="Email o número de celular"
-          placeholderTextColor="#8a8a8a"
-          style={estilos.input}
-          value={correo}
-          onChangeText={setCorreo}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          placeholder="Contraseña"
-          placeholderTextColor="#8a8a8a"
-          style={estilos.input}
-          value={clave}
-          onChangeText={setClave}
-          secureTextEntry
-        />
+        {modo === 'password' && (
+          <>
+            <TextInput
+              placeholder="Email o número de celular"
+              placeholderTextColor="#8a8a8a"
+              style={estilos.input}
+              value={correo}
+              onChangeText={setCorreo}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TextInput
+              placeholder="Contraseña"
+              placeholderTextColor="#8a8a8a"
+              style={estilos.input}
+              value={clave}
+              onChangeText={setClave}
+              secureTextEntry
+            />
+          </>
+        )}
+
+        {modo === 'codigo' && (
+          <>
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#8a8a8a"
+              style={estilos.input}
+              value={correo}
+              onChangeText={setCorreo}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {codigoEnviado && (
+              <TextInput
+                placeholder="Código de 6 dígitos"
+                placeholderTextColor="#8a8a8a"
+                style={estilos.input}
+                value={codigo}
+                onChangeText={setCodigo}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            )}
+            {!!mensaje && <Text style={{ color: '#9be59b', marginBottom: 8 }}>{mensaje}</Text>}
+          </>
+        )}
+
+        {modo === 'reset' && (
+          <>
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#8a8a8a"
+              style={estilos.input}
+              value={correo}
+              onChangeText={setCorreo}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {resetEnviado && (
+              <TextInput
+                placeholder="Token de restablecimiento"
+                placeholderTextColor="#8a8a8a"
+                style={estilos.input}
+                value={tokenReset}
+                onChangeText={setTokenReset}
+                autoCapitalize="none"
+              />
+            )}
+            {resetEnviado && (
+              <TextInput
+                placeholder="Nueva contraseña"
+                placeholderTextColor="#8a8a8a"
+                style={estilos.input}
+                value={nuevaClave}
+                onChangeText={setNuevaClave}
+                secureTextEntry
+              />
+            )}
+            {!!mensaje && <Text style={{ color: '#9be59b', marginBottom: 8 }}>{mensaje}</Text>}
+          </>
+        )}
 
         {error ? <Text style={estilos.error}>{error}</Text> : null}
 
-        <TouchableOpacity
-          style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
-          disabled={enviando}
-          onPress={async () => {
-            try {
-              setEnviando(true);
-              setError('');
-              if (!correo || !clave) {
-                setError('Completa correo y clave.');
-                return;
+        {modo === 'password' && (
+          <TouchableOpacity
+            style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
+            disabled={enviando}
+            onPress={async () => {
+              try {
+                setEnviando(true);
+                setError('');
+                if (!correo || !clave) {
+                  setError('Completa correo y clave.');
+                  return;
+                }
+                const { token } = await ingresarUsuario({ correo, clave });
+                setToken(token);
+                onExito?.();
+              } catch (e) {
+                const msg = (e && e.message) || '';
+                if (msg.includes('Network request failed')) {
+                  setError('No se pudo conectar al servidor. Revisa tu red/BASE_URL.');
+                } else {
+                  setError('Credenciales inválidas o error al ingresar.');
+                }
+              } finally {
+                setEnviando(false);
               }
-              const { token } = await ingresarUsuario({ correo, clave });
-              setToken(token);
-              onExito?.();
-            } catch (e) {
-              const msg = (e && e.message) || '';
-              if (msg.includes('Network request failed')) {
-                setError('No se pudo conectar al servidor. Revisa tu red/BASE_URL.');
-              } else {
-                setError('Credenciales inválidas o error al ingresar.');
-              }
-            } finally {
-              setEnviando(false);
-            }
-          }}
-        >
-          <Text style={estilos.botonTxt}>Iniciar sesión</Text>
-        </TouchableOpacity>
+            }}
+          >
+            <Text style={estilos.botonTxt}>Iniciar sesión</Text>
+          </TouchableOpacity>
+        )}
+
+        {modo === 'codigo' && (
+          !codigoEnviado ? (
+            <TouchableOpacity
+              style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
+              disabled={enviando}
+              onPress={async () => {
+                try {
+                  setEnviando(true);
+                  setError('');
+                  if (!correo) { setError('Ingresa tu correo.'); return; }
+                  await solicitarCodigoLogin({ correo });
+                  setCodigoEnviado(true);
+                  setMensaje('Te enviamos un código a tu correo. Revísalo e introdúcelo aquí.');
+                } catch (e) {
+                  setError(e.message || 'Error al solicitar código');
+                } finally {
+                  setEnviando(false);
+                }
+              }}
+            >
+              <Text style={estilos.botonTxt}>Enviar código</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
+              disabled={enviando}
+              onPress={async () => {
+                try {
+                  setEnviando(true);
+                  setError('');
+                  if (!correo || !codigo) { setError('Ingresa correo y código.'); return; }
+                  const { token } = await ingresarConCodigo({ correo, codigo });
+                  setToken(token);
+                  onExito?.();
+                } catch (e) {
+                  setError(e.message || 'Código inválido');
+                } finally {
+                  setEnviando(false);
+                }
+              }}
+            >
+              <Text style={estilos.botonTxt}>Ingresar con código</Text>
+            </TouchableOpacity>
+          )
+        )}
+
+        {modo === 'reset' && (
+          !tokenReset ? (
+            <TouchableOpacity
+              style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
+              disabled={enviando}
+              onPress={async () => {
+                try {
+                  setEnviando(true);
+                  setError('');
+                  if (!correo) { setError('Ingresa tu correo.'); return; }
+                  await solicitarResetClave({ correo });
+                  setResetEnviado(true);
+                  setMensaje('Te enviamos un token de restablecimiento a tu correo.');
+                } catch (e) {
+                  setError(e.message || 'No se pudo solicitar el restablecimiento');
+                } finally {
+                  setEnviando(false);
+                }
+              }}
+            >
+              <Text style={estilos.botonTxt}>Enviar enlace/código</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
+              disabled={enviando}
+              onPress={async () => {
+                try {
+                  setEnviando(true);
+                  setError('');
+                  if (!tokenReset || !nuevaClave) { setError('Completa token y nueva contraseña.'); return; }
+                  await restablecerClave({ token: tokenReset, nueva_clave: nuevaClave });
+                  // Cambiar a modo password tras restablecer
+                  setModo('password');
+                  setClave('');
+                  setNuevaClave('');
+                  setTokenReset('');
+                  setResetEnviado(false);
+                  setError('Contraseña actualizada. Inicia sesión con tu nueva clave.');
+                } catch (e) {
+                  setError(e.message || 'No se pudo restablecer la contraseña');
+                } finally {
+                  setEnviando(false);
+                }
+              }}
+            >
+              <Text style={estilos.botonTxt}>Restablecer contraseña</Text>
+            </TouchableOpacity>
+          )
+        )}
 
         {enviando ? (
           <View style={{ alignItems: 'center', marginTop: 10 }}>
@@ -82,13 +253,19 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
           </View>
         ) : null}
 
-        <TouchableOpacity style={estilos.botonGris} onPress={() => Alert.alert('Código de inicio', 'Función no implementada aún')}>
+        <TouchableOpacity style={estilos.botonGris} onPress={() => { setError(''); setMensaje(''); setCodigo(''); setCodigoEnviado(false); setModo('codigo'); }}>
           <Text style={estilos.botonGrisTxt}>Usar un código de inicio de sesión</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => Alert.alert('Recuperar contraseña', 'Función no implementada aún')}>
+        <TouchableOpacity onPress={() => { setError(''); setMensaje(''); setModo('reset'); setResetEnviado(false); setTokenReset(''); setNuevaClave(''); }}>
           <Text style={estilos.link}>¿Olvidaste la contraseña?</Text>
         </TouchableOpacity>
+
+        {modo !== 'password' && (
+          <TouchableOpacity onPress={() => { setModo('password'); setError(''); setMensaje(''); setCodigo(''); setCodigoEnviado(false); setTokenReset(''); setNuevaClave(''); setResetEnviado(false); }}>
+            <Text style={[estilos.link, { marginTop: 10 }]}>Volver a inicio de sesión</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={{ flexDirection: 'row', marginTop: 18 }}>
           <Text style={{ color: '#b3b3b3' }}>¿Primera vez en Netflix? </Text>

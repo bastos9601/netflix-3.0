@@ -56,6 +56,34 @@ async function inicializarBD() {
         FOREIGN KEY (perfil_id) REFERENCES perfiles(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+    // Tabla para códigos de ingreso (passwordless)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS codigos_ingreso (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        usuario_id INT NOT NULL,
+        correo VARCHAR(255) NOT NULL,
+        codigo VARCHAR(12) NOT NULL,
+        usado TINYINT(1) NOT NULL DEFAULT 0,
+        expira_en DATETIME NOT NULL,
+        creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_correo_codigo (correo, codigo),
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    // Tabla para tokens de restablecimiento de clave
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS tokens_reset (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        usuario_id INT NOT NULL,
+        correo VARCHAR(255) NOT NULL,
+        token VARCHAR(64) NOT NULL,
+        usado TINYINT(1) NOT NULL DEFAULT 0,
+        expira_en DATETIME NOT NULL,
+        creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_token (token),
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
     // Asegurar columnas/índices en instalaciones previas
     try { await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS clave_hash VARCHAR(255) NOT NULL`); } catch (e) {}
     try { await pool.query(`ALTER TABLE usuarios ADD UNIQUE KEY IF NOT EXISTS uniq_correo (correo)`); } catch (e) {}

@@ -92,6 +92,52 @@ export async function ingresarUsuario({ correo, clave }) {
   return resp.json();
 }
 
+// Passwordless: solicitar código e ingresar con código
+export async function solicitarCodigoLogin({ correo }) {
+  const url = `${CONFIGURACION.BASE_URL}/autenticacion/codigo/solicitar`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ correo }),
+  });
+  if (!resp.ok) throw new Error('Error al solicitar código');
+  return resp.json(); // { ok, codigo }
+}
+
+export async function ingresarConCodigo({ correo, codigo }) {
+  const url = `${CONFIGURACION.BASE_URL}/autenticacion/codigo/ingresar`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ correo, codigo }),
+  });
+  if (!resp.ok) throw new Error('Código inválido o expirado');
+  return resp.json(); // { token }
+}
+
+// Recuperación de contraseña
+export async function solicitarResetClave({ correo }) {
+  const url = `${CONFIGURACION.BASE_URL}/autenticacion/clave/solicitar-reset`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ correo }),
+  });
+  if (!resp.ok) throw new Error('Error al solicitar restablecimiento');
+  return resp.json(); // { ok, token }
+}
+
+export async function restablecerClave({ token, nueva_clave }) {
+  const url = `${CONFIGURACION.BASE_URL}/autenticacion/clave/restablecer`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, nueva_clave }),
+  });
+  if (!resp.ok) throw new Error('No se pudo restablecer la contraseña');
+  return resp.json();
+}
+
 export async function listarPerfiles(token) {
   const url = `${CONFIGURACION.BASE_URL}/perfiles`;
   const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });

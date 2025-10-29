@@ -140,6 +140,7 @@ export default function ReproductorVideo({
         )}
         {Array.isArray(episodes) && episodes.length > 0 && (
           <TouchableOpacity style={estilos.iconBtn} onPress={() => setShowEpisodes((v) => !v)}>
+            {/* icono hamburguesa */}
             <Ionicons name="list" size={20} color="#fff" />
           </TouchableOpacity>
         )}

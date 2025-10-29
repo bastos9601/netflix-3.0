@@ -21,11 +21,13 @@ async function obtenerTendencias(tipo = 'all', periodo = 'week') {
 
 async function obtenerVideos(tipo, id) {
   const { data } = await clienteTMDB.get(`/${tipo}/${id}/videos`);
-  const trailers = (data.results || []).filter(
-    (v) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
-  );
-  const principal = trailers[0] || (data.results || [])[0] || null;
-  return { videos: data.results || [], trailer_principal: principal };
+  const todos = data.results || [];
+  // Preferir trailers/teasers. Priorizar Vimeo si existe, luego YouTube.
+  const candidatos = todos.filter(v => (v.type === 'Trailer' || v.type === 'Teaser'));
+  const vimeo = candidatos.find(v => v.site === 'Vimeo');
+  const youtube = candidatos.find(v => v.site === 'YouTube');
+  const principal = vimeo || youtube || candidatos[0] || todos[0] || null;
+  return { videos: todos, trailer_principal: principal };
 }
 
 async function buscarContenidos(q, tipo = 'multi') {

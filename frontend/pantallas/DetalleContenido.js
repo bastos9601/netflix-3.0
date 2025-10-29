@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, StatusBar, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ReproductorVideo from '../componentes/ReproductorVideo';
+import ReproductorYouTube from '../componentes/ReproductorYouTube';
+import ReproductorVimeo from '../componentes/ReproductorVimeo';
 import FilaHorizontal from '../componentes/FilaHorizontal';
 import { obtenerPopulares, agregarAMiLista, quitarDeMiLista, verificarEnMiLista, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerVideosContenido, obtenerFuentePeliculaLocal, obtenerFuenteSerieLocal } from '../servicios/api';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
@@ -22,7 +24,7 @@ export default function DetalleContenido({ item, onCerrar }) {
   const [temporadaSeleccionada, setTemporadaSeleccionada] = useState(null);
   const [episodios, setEpisodios] = useState([]);
   const [cargandoEpisodios, setCargandoEpisodios] = useState(false);
-  const [player, setPlayer] = useState({ visible: false, url: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null });
+  const [player, setPlayer] = useState({ visible: false, url: null, youtubeId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null });
 
   const { token, perfilActual } = useAutenticacion();
   const portada = itemActual?.fondo || itemActual?.poster || null;
@@ -109,9 +111,34 @@ export default function DetalleContenido({ item, onCerrar }) {
     try {
       const fuente = await obtenerFuentePeliculaLocal({ titulo: itemActual?.titulo, anio });
       if (!fuente?.url) throw new Error('Fuente inválida');
-      setPlayer({ visible: true, url: fuente.url, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+      setPlayer({ visible: true, url: fuente.url, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
     } catch (e) {
-      Alert.alert('No disponible', 'No se encontró la película en el catálogo local.');
+      try {
+        const datos = await obtenerVideosContenido(itemActual?.tipo || 'movie', itemActual?.id);
+        const t = datos?.trailer_principal;
+        if (t?.site === 'Vimeo' && t?.key) {
+          setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: t.key, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+          return;
+        }
+        if (t?.site === 'YouTube' && t?.key) {
+          setPlayer({ visible: true, url: null, youtubeId: t.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+          return;
+        }
+        // fallbacks
+        const v = (datos?.videos || []).find(v => v.site === 'Vimeo' && v.key);
+        if (v?.key) {
+          setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: v.key, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+          return;
+        }
+        const y = (datos?.videos || []).find(v => v.site === 'YouTube' && v.key);
+        if (y?.key) {
+          setPlayer({ visible: true, url: null, youtubeId: y.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+          return;
+        }
+        Alert.alert('No disponible', 'No se encontró un tráiler disponible.');
+      } catch (e2) {
+        Alert.alert('No disponible', 'No se encontró la película en el catálogo local ni tráiler en la API.');
+      }
     }
   };
 
@@ -120,9 +147,33 @@ export default function DetalleContenido({ item, onCerrar }) {
       const nombreSerie = detallesSerie?.nombre || detallesSerie?.titulo || itemActual?.titulo;
       const fuente = await obtenerFuenteSerieLocal({ nombre: nombreSerie, temporada: temporadaSeleccionada, episodio: epNumero });
       if (!fuente?.url) throw new Error('Fuente inválida');
-      setPlayer({ visible: true, url: fuente.url, titulo: `${itemActual?.titulo} T${temporadaSeleccionada}E${epNumero}`, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+      setPlayer({ visible: true, url: fuente.url, youtubeId: null, vimeoId: null, titulo: `${itemActual?.titulo} T${temporadaSeleccionada}E${epNumero}`, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
     } catch (e) {
-      Alert.alert('No disponible', 'No se encontró el episodio en el catálogo local.');
+      try {
+        const datos = await obtenerVideosContenido('tv', itemActual?.id);
+        const t = datos?.trailer_principal;
+        if (t?.site === 'Vimeo' && t?.key) {
+          setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: t.key, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+          return;
+        }
+        if (t?.site === 'YouTube' && t?.key) {
+          setPlayer({ visible: true, url: null, youtubeId: t.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+          return;
+        }
+        const v = (datos?.videos || []).find(v => v.site === 'Vimeo' && v.key);
+        if (v?.key) {
+          setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: v.key, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+          return;
+        }
+        const y = (datos?.videos || []).find(v => v.site === 'YouTube' && v.key);
+        if (y?.key) {
+          setPlayer({ visible: true, url: null, youtubeId: y.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+          return;
+        }
+        Alert.alert('No disponible', 'No se encontró un tráiler disponible de la serie.');
+      } catch (e2) {
+        Alert.alert('No disponible', 'No se encontró el episodio local ni tráiler en la API.');
+      }
     }
   };
 
@@ -164,21 +215,33 @@ export default function DetalleContenido({ item, onCerrar }) {
       {player.visible && (
         <View style={estilos.playerOverlay}>
           <View style={estilos.playerTopBar}>
-            <TouchableOpacity onPress={() => setPlayer({ visible: false, url: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null })} style={estilos.iconBtn}>
+            <TouchableOpacity onPress={() => setPlayer({ visible: false, url: null, youtubeId: null, vimeoId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null })} style={estilos.iconBtn}>
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
             <Text style={estilos.playerTitulo} numberOfLines={1}>{player.titulo || 'Reproduciendo'}</Text>
             <View style={{ width: 32 }} />
           </View>
-          <ReproductorVideo 
-            sourceUrl={player.url}
-            poster={player.poster}
-            onClose={() => setPlayer({ visible: false, url: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null })}
-            episodes={player.esSerie ? episodios : []}
-            seasonNumber={player.esSerie ? player.temporada : undefined}
-            currentEpisodeNumber={player.esSerie ? player.epNumero : undefined}
-            onSelectEpisode={(num) => reproducirEpisodio(num)}
-          />
+          {player.vimeoId ? (
+            <ReproductorVimeo
+              videoId={player.vimeoId}
+              onClose={() => setPlayer({ visible: false, url: null, youtubeId: null, vimeoId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null })}
+            />
+          ) : player.youtubeId ? (
+            <ReproductorYouTube
+              videoId={player.youtubeId}
+              onClose={() => setPlayer({ visible: false, url: null, youtubeId: null, vimeoId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null })}
+            />
+          ) : (
+            <ReproductorVideo 
+              sourceUrl={player.url}
+              poster={player.poster}
+              onClose={() => setPlayer({ visible: false, url: null, youtubeId: null, vimeoId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null })}
+              episodes={player.esSerie ? episodios : []}
+              seasonNumber={player.esSerie ? player.temporada : undefined}
+              currentEpisodeNumber={player.esSerie ? player.epNumero : undefined}
+              onSelectEpisode={(num) => reproducirEpisodio(num)}
+            />
+          )}
         </View>
       )}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>

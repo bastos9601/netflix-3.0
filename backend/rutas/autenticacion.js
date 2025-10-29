@@ -5,4 +5,12 @@ const authCtrl = require('../controladores/autenticacion');
 router.post('/registro', authCtrl.registrar);
 router.post('/ingreso', authCtrl.ingresar);
 
+// Login con código (passwordless)
+router.post('/codigo/solicitar', authCtrl.solicitarCodigo);
+router.post('/codigo/ingresar', authCtrl.ingresarConCodigo);
+
+// Recuperación de contraseña
+router.post('/clave/solicitar-reset', authCtrl.solicitarReset);
+router.post('/clave/restablecer', authCtrl.restablecerClave);
+
 module.exports = router;
