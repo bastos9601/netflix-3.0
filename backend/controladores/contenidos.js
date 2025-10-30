@@ -1,7 +1,7 @@
 // Controlador de contenidos:
 // Orquesta llamadas a TMDB (tendencias, videos, búsqueda, detalles)
 // y provee lecturas de fuentes locales (JSON de películas/series).
-const { obtenerTendencias, obtenerVideos, buscarContenidos, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerCreditosTV } = require('../configuracion/tmdb');
+const { obtenerTendencias, obtenerVideos, buscarContenidos, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerCreditosTV, obtenerPeliculasPorPagina } = require('../configuracion/tmdb');
 const fs = require('fs');
 const path = require('path');
 
@@ -54,6 +54,31 @@ async function obtenerDetallesSerieCtrl(req, res) {
     res.status(500).json({ error: 'Error al obtener detalles de la serie' });
   }
 }
+
+// Nuevo: Películas con paginación y filtros (sin afectar endpoints existentes)
+async function obtenerPeliculas(req, res) {
+  try {
+    const page = parseInt(req.query.page || '1', 10);
+    const pages = Math.min(parseInt(req.query.pages || '1', 10), 10); // limitar para evitar exceso
+    const sort_by = req.query.sort_by || 'popularity.desc';
+    const year = req.query.year; // opcional
+    const with_genres = req.query.with_genres; // opcional
+
+    const paramsBase = { sort_by, include_adult: false };
+    if (year) paramsBase.primary_release_year = year;
+    if (with_genres) paramsBase.with_genres = with_genres;
+
+    const tasks = Array.from({ length: pages }, (_, i) => obtenerPeliculasPorPagina(page + i, paramsBase));
+    const results = await Promise.all(tasks);
+    const planos = results.flat();
+    res.json({ resultados: planos, page, pages });
+  } catch (e) {
+    console.error(e.message);
+    res.status(500).json({ error: 'Error al obtener películas paginadas de TMDB' });
+  }
+}
+
+module.exports.obtenerPeliculas = obtenerPeliculas;
 
 async function obtenerEpisodiosTemporadaCtrl(req, res) {
   try {

@@ -25,7 +25,8 @@
  */
 import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Platform, Text, StatusBar, Dimensions, TouchableOpacity, FlatList, Image } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEvent } from 'expo';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -50,10 +51,35 @@ export default function ReproductorVideo({
   const [originalOrientation, setOriginalOrientation] = useState(null);
   const [showEpisodes, setShowEpisodes] = useState(false);
 
+  // Inicializar el reproductor con expo-video
+  const player = useVideoPlayer(sourceUrl || null, (p) => {
+    p.loop = false;
+    if (autoPlay) {
+      try { p.play(); } catch {}
+    }
+  });
+
+  // Escuchar estado de reproducción y errores
+  const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+  const { status, error: playerError } = useEvent(player, 'statusChange', { status: player.status, error: player.error });
+
   useEffect(() => {
     setCargando(true);
     setError(null);
   }, [sourceUrl]);
+
+  useEffect(() => {
+    if (playerError) {
+      setError('No se pudo reproducir el video');
+      setCargando(false);
+    }
+  }, [playerError]);
+
+  useEffect(() => {
+    if (status === 'ready' || isPlaying) {
+      setCargando(false);
+    }
+  }, [status, isPlaying]);
 
   // Forzar orientación horizontal al iniciar el reproductor
   useEffect(() => {
@@ -138,20 +164,13 @@ export default function ReproductorVideo({
   return (
     <View style={estilos.root}>
       {sourceUrl ? (
-        <Video
+        <VideoView
           ref={videoRef}
           style={estilos.player}
-          source={{ uri: sourceUrl }}
-          useNativeControls
-          shouldPlay={!!autoPlay}
-          resizeMode={ResizeMode.CONTAIN}
-          posterSource={poster ? { uri: poster } : undefined}
-          onLoadStart={() => setCargando(true)}
-          onReadyForDisplay={() => setCargando(false)}
-          onError={(e) => {
-            setError('No se pudo reproducir el video');
-            setCargando(false);
-          }}
+          player={player}
+          allowsFullscreen
+          allowsPictureInPicture
+          contentFit="contain"
         />
       ) : (
         <View style={estilos.fallback}><Text style={{ color: '#fff' }}>Sin fuente de video</Text></View>
@@ -163,6 +182,16 @@ export default function ReproductorVideo({
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
         )}
+        <TouchableOpacity
+          style={estilos.iconBtn}
+          onPress={() => {
+            try {
+              if (isPlaying) { player.pause(); } else { player.play(); }
+            } catch {}
+          }}
+        >
+          <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#fff" />
+        </TouchableOpacity>
         {Array.isArray(episodes) && episodes.length > 0 && (
           <TouchableOpacity style={estilos.iconBtn} onPress={() => setShowEpisodes((v) => !v)}>
             {/* icono hamburguesa */}
@@ -173,7 +202,11 @@ export default function ReproductorVideo({
 
       {cargando && (
         <View style={estilos.overlayCenter}>
-          <ActivityIndicator size="large" color="#E50914" />
+          {poster ? (
+            <Image source={{ uri: poster }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          ) : (
+            <ActivityIndicator size="large" color="#E50914" />
+          )}
         </View>
       )}
       {!!error && (

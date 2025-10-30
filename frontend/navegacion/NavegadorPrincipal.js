@@ -19,19 +19,29 @@ import Perfiles from '../pantallas/Perfiles';
 // Navegador mínimo: muestra pantalla de arranque animada y luego Inicio.
 export default function NavegadorPrincipal() {
   const [fase, setFase] = useState('arranque'); // arranque -> presentacion -> registro -> inicio
-  const { token } = useAutenticacion();
+  const { token, perfilActual } = useAutenticacion();
 
+  // Tras el arranque, decidir fase según sesión restaurada
   useEffect(() => {
-    const t = setTimeout(() => setFase('presentacion'), 1800);
+    const t = setTimeout(() => {
+      if (token) {
+        setFase(perfilActual ? 'inicio' : 'perfiles');
+      } else {
+        setFase('presentacion');
+      }
+    }, 1800);
     return () => clearTimeout(t);
-  }, []);
+  }, [token, perfilActual]);
 
-  // Si el usuario cierra sesión (token null), volver a pantalla de inicio de sesión
+  // Cuando el token cambia en caliente, reubicar fase según perfil
   useEffect(() => {
-    if (fase !== 'arranque' && !token) {
-      setFase('inicio_sesion');
+    if (fase === 'arranque') return;
+    if (token) {
+      setFase(perfilActual ? 'inicio' : 'perfiles');
+    } else {
+      setFase('presentacion');
     }
-  }, [token]);
+  }, [token, perfilActual]);
 
   if (fase === 'arranque') return <Arranque />;
   if (fase === 'presentacion') return (

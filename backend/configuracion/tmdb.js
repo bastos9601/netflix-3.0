@@ -95,4 +95,25 @@ async function obtenerCreditosTV(id) {
   };
 }
 
-module.exports = { clienteTMDB, obtenerTendencias, obtenerVideos, buscarContenidos, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerCreditosTV };
+// Películas con paginación (discover)
+async function obtenerPeliculasPorPagina(page = 1, params = {}) {
+  const { data } = await clienteTMDB.get('/discover/movie', {
+    params: {
+      sort_by: 'popularity.desc',
+      include_adult: false,
+      page,
+      ...params,
+    },
+  });
+  return (data.results || []).map((item) => ({
+    id: item.id,
+    titulo: item.title || item.name,
+    tipo: 'movie',
+    poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+    fondo: item.backdrop_path ? `https://image.tmdb.org/t/p/w780${item.backdrop_path}` : null,
+    resumen: item.overview,
+    fecha: item.release_date || item.first_air_date,
+  }));
+}
+
+module.exports = { clienteTMDB, obtenerTendencias, obtenerVideos, buscarContenidos, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerCreditosTV, obtenerPeliculasPorPagina };

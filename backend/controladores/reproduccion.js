@@ -6,12 +6,16 @@ const pool = require('../configuracion/basedatos');
 async function guardarProgreso(req, res) {
   try {
     const { perfilId, tipo, contenidoId, segundo } = req.body;
-    await pool.query(
-      `INSERT INTO progreso_visualizacion (perfil_id, tipo, contenido_id, segundo)
-       VALUES (?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE segundo = VALUES(segundo)`,
-      [perfilId, tipo, contenidoId, segundo]
-    );
+    const esPg = pool.dbType === 'postgres';
+    const sql = esPg
+      ? `INSERT INTO progreso_visualizacion (perfil_id, tipo, contenido_id, segundo)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT (perfil_id, tipo, contenido_id)
+         DO UPDATE SET segundo = EXCLUDED.segundo`
+      : `INSERT INTO progreso_visualizacion (perfil_id, tipo, contenido_id, segundo)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE segundo = VALUES(segundo)`;
+    await pool.query(sql, [perfilId, tipo, contenidoId, segundo]);
     res.json({ ok: true });
   } catch (e) {
     console.error(e);

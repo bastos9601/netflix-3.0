@@ -14,7 +14,8 @@ import { guardarCalificacion } from '../servicios/api';
  * - `onCerrar` permite volver/cerrar el overlay de detalle.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, StatusBar, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, StatusBar, ActivityIndicator, Alert, Platform } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal } from 'react-native';
 import ReproductorVideo from '../componentes/ReproductorVideo';
@@ -45,6 +46,8 @@ export default function DetalleContenido({ item, onCerrar }) {
   const [episodios, setEpisodios] = useState([]);
   const [cargandoEpisodios, setCargandoEpisodios] = useState(false);
   const [player, setPlayer] = useState({ visible: false, url: null, youtubeId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null });
+  const [previewTrailer, setPreviewTrailer] = useState({ visible: false, youtubeId: null, vimeoId: null });
+  const [trailerDisponible, setTrailerDisponible] = useState(false);
 
   const { token, perfilActual } = useAutenticacion();
   const portada = itemActual?.fondo || itemActual?.poster || null;
@@ -130,6 +133,46 @@ export default function DetalleContenido({ item, onCerrar }) {
     return () => { activo = false; };
   }, [esSerie, itemActual?.id]);
 
+  // Autoplay de tráiler superpuesto en la cabecera (solo web)
+  useEffect(() => {
+    let cancelado = false;
+    let timer = null;
+    (async () => {
+      try {
+        if (Platform.OS !== 'web') return; // el comportamiento de overlay inline se aplica en web
+        if (!itemActual?.id) return;
+        const datos = await obtenerVideosContenido(itemActual?.tipo || 'movie', itemActual?.id);
+        const t = datos?.trailer_principal;
+        if (t?.site === 'YouTube' && t?.key) {
+          if (!cancelado) setPreviewTrailer({ visible: true, youtubeId: t.key, vimeoId: null });
+          if (!cancelado) setTrailerDisponible(true);
+        } else if (t?.site === 'Vimeo' && t?.key) {
+          if (!cancelado) setPreviewTrailer({ visible: true, youtubeId: null, vimeoId: t.key });
+          if (!cancelado) setTrailerDisponible(true);
+        } else {
+          const v = (datos?.videos || []).find(v => v.site === 'YouTube' && v.key) || (datos?.videos || []).find(v => v.site === 'Vimeo' && v.key);
+          if (v?.site === 'YouTube' && v?.key) {
+            if (!cancelado) setPreviewTrailer({ visible: true, youtubeId: v.key, vimeoId: null });
+            if (!cancelado) setTrailerDisponible(true);
+          } else if (v?.site === 'Vimeo' && v?.key) {
+            if (!cancelado) setPreviewTrailer({ visible: true, youtubeId: null, vimeoId: v.key });
+            if (!cancelado) setTrailerDisponible(true);
+          }
+        }
+        if (!cancelado) {
+          // Cerrar automáticamente tras 30s si no hay evento de fin disponible
+          timer = setTimeout(() => setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null }), 30000);
+        }
+      } catch {}
+    })();
+    return () => {
+      cancelado = true;
+      if (timer) clearTimeout(timer);
+      setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
+      setTrailerDisponible(false);
+    };
+  }, [itemActual?.id, itemActual?.tipo]);
+
   // Cambiar temporada
   const cambiarTemporada = async (numero) => {
     try {
@@ -149,7 +192,13 @@ export default function DetalleContenido({ item, onCerrar }) {
     try {
       const fuente = await obtenerFuentePeliculaLocal({ titulo: itemActual?.titulo, anio });
       if (!fuente?.url) throw new Error('Fuente inválida');
-      setPlayer({ visible: true, url: fuente.url, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+      // En web, si la fuente parece incompatible (p.ej. MKV/Dropbox), preferir tráiler
+      const esWeb = Platform.OS === 'web';
+      const url = String(fuente.url || '');
+      const extension = url.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
+      const fuenteNoAptaWeb = esWeb && (extension === 'mkv' || url.includes('dropboxusercontent.com'));
+      if (fuenteNoAptaWeb) throw new Error('Fuente no compatible en web');
+      setPlayer({ visible: true, url, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
     } catch (e) {
       try {
         const datos = await obtenerVideosContenido(itemActual?.tipo || 'movie', itemActual?.id);
@@ -174,8 +223,12 @@ export default function DetalleContenido({ item, onCerrar }) {
           return;
         }
         Alert.alert('No disponible', 'No se encontró un tráiler disponible.');
+        // Abrir overlay con reproductor sin fuente para dar feedback
+        setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
       } catch (e2) {
         Alert.alert('No disponible', 'No se encontró la película en el catálogo local ni tráiler en la API.');
+        // Abrir overlay con reproductor sin fuente para dar feedback
+        setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
       }
     }
   };
@@ -209,8 +262,10 @@ export default function DetalleContenido({ item, onCerrar }) {
           return;
         }
         Alert.alert('No disponible', 'No se encontró un tráiler disponible de la serie.');
+        setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
       } catch (e2) {
         Alert.alert('No disponible', 'No se encontró el episodio local ni tráiler en la API.');
+        setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
       }
     }
   };
@@ -352,9 +407,59 @@ export default function DetalleContenido({ item, onCerrar }) {
         {/* Cabecera imagen */}
         <View style={estilos.topMedia}>
           {portada ? (
-            <Image source={{ uri: portada }} style={estilos.mediaImg} />
+            <Image source={{ uri: portada }} style={estilos.mediaImg} resizeMode="cover" />
           ) : (
             <View style={[estilos.mediaImg, { backgroundColor: '#222' }]} />
+          )}
+          {/* Overlay de tráiler (web) */}
+          {Platform.OS === 'web' && previewTrailer.visible && (
+            <View style={estilos.trailerOverlayInline}>
+              {previewTrailer.youtubeId ? (
+                Platform.OS === 'web' ? (
+                  <iframe
+                    title="trailer"
+                    src={`https://www.youtube.com/embed/${previewTrailer.youtubeId}?autoplay=1&controls=0&fs=0&modestbranding=1&rel=0&playsinline=1&mute=1`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    frameBorder="0"
+                    style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+                  />
+                ) : (
+                  <WebView
+                    style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+                    source={{ html: `<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1' /></head><body style='margin:0;background:#000'><iframe src='https://m.youtube.com/watch?v=${previewTrailer.youtubeId}&autoplay=1' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share' frameborder='0' style='position:fixed;top:0;left:0;width:100%;height:100%;'></iframe></body></html>` }}
+                    originWhitelist={["*"]}
+                    allowsFullscreenVideo
+                    javaScriptEnabled
+                    domStorageEnabled
+                    mediaPlaybackRequiresUserAction={false}
+                    allowsInlineMediaPlayback
+                    mixedContentMode="always"
+                  />
+                )
+              ) : previewTrailer.vimeoId ? (
+                Platform.OS === 'web' ? (
+                  <iframe
+                    title="vimeo"
+                    src={`https://player.vimeo.com/video/${previewTrailer.vimeoId}?autoplay=1&muted=1&title=0&byline=0&portrait=0`}
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    frameBorder="0"
+                    style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+                  />
+                ) : (
+                  <WebView
+                    style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+                    source={{ uri: `https://player.vimeo.com/video/${previewTrailer.vimeoId}?autoplay=1&muted=1&title=0&byline=0&portrait=0` }}
+                    javaScriptEnabled
+                    domStorageEnabled
+                    mediaPlaybackRequiresUserAction={false}
+                    allowsInlineMediaPlayback
+                  />
+                )
+              ) : null}
+              <TouchableOpacity style={estilos.trailerCloseBtn} onPress={() => setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null })}>
+                <Ionicons name="close" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
           )}
           <View style={estilos.mediaOverlay} />
           <View style={estilos.topBar}>
@@ -374,6 +479,23 @@ export default function DetalleContenido({ item, onCerrar }) {
           <View style={estilos.captionWrap}>
             <Text style={estilos.captionTxt}>{/* El banco me desahuciará si no pago la renta.*/} Hola quieres ser mi tilina 😳</Text>
           </View>
+
+          {/* Botón para reproducir tráiler en móvil (requiere gesto) */}
+          {Platform.OS !== 'web' && trailerDisponible && (
+            <TouchableOpacity
+              style={[estilos.playTrailerBtn]}
+              onPress={() => {
+                if (previewTrailer.youtubeId) {
+                  setPlayer({ visible: true, url: null, youtubeId: previewTrailer.youtubeId, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+                } else if (previewTrailer.vimeoId) {
+                  setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: previewTrailer.vimeoId, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+                }
+              }}
+            >
+              <Ionicons name="play" size={28} color="#fff" />
+              <Text style={{ color: '#fff', marginLeft: 8, fontWeight: '700' }}>Ver tráiler</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Detalle */}
@@ -513,7 +635,7 @@ export default function DetalleContenido({ item, onCerrar }) {
 
 const estilos = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000' },
-  topMedia: { width, height: width * 0.56, backgroundColor: '#111' },
+  topMedia: { width, height: width * 0.56, backgroundColor: '#111', overflow: 'hidden' },
   mediaImg: { width: '100%', height: '100%' },
   mediaOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   topBar: { position: 'absolute', top: 8, left: 8, right: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -548,6 +670,9 @@ const estilos = StyleSheet.create({
   tempChipTxtSel: { color: '#fff', fontWeight: '800' },
   episodioRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
   episodioImg: { width: 120, height: 68, borderRadius: 6, backgroundColor: '#333' },
+  trailerOverlayInline: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, zIndex: 12 },
+  trailerCloseBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 8, paddingVertical: 6, borderRadius: 16 },
+  playTrailerBtn: { position: 'absolute', bottom: 20, left: 12, backgroundColor: 'rgba(0,0,0,0.5)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center' },
   playerOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: '#000', zIndex: 20 },
   playerTopBar: { position: 'absolute', top: 8, left: 8, right: 8, zIndex: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   playerTitulo: { color: '#fff', fontWeight: '700', flex: 1, textAlign: 'center' },

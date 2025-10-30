@@ -6,14 +6,20 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "mobile": "node scripts/mobile.js",
+    "mobile:pg": "node scripts/mobile.js pg",
+    "mobile:mysql": "node scripts/mobile.js mysql",
+    "mobile:toggle": "node scripts/mobile.js toggle"
   },
   "dependencies": {
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~54.0.20",
     "expo-audio": "^1.0.14",
     "expo-av": "^16.0.7",
     "expo-screen-orientation": "^9.0.7",
     "expo-status-bar": "~3.0.8",
+    "expo-video": "^1.0.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",

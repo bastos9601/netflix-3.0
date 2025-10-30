@@ -10,6 +10,18 @@ export async function obtenerPopulares({ tipo = 'all', periodo = 'week' } = {}) 
   return json.resultados || [];
 }
 
+// Nuevo: obtener películas (TMDB discover) con paginación agregada
+export async function obtenerPeliculas({ page = 1, pages = 1, sort_by = 'popularity.desc', year, with_genres } = {}) {
+  const params = new URLSearchParams({ page: String(page), pages: String(pages), sort_by });
+  if (year) params.append('year', String(year));
+  if (with_genres) params.append('with_genres', String(with_genres));
+  const url = `${CONFIGURACION.BASE_URL}/contenidos/peliculas?${params.toString()}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('Error al obtener películas');
+  const json = await resp.json();
+  return json.resultados || [];
+}
+
 export async function obtenerVideosContenido(tipo, id) {
   const url = `${CONFIGURACION.BASE_URL}/contenidos/${tipo}/${id}/videos`;
   const resp = await fetch(url);

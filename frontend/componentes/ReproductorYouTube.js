@@ -14,6 +14,8 @@ export default function ReproductorYouTube({
   videoId,
   onClose,
   autoFullscreenOnLandscape = true,
+  autoCloseOnEnd = true,
+  muted = true,
 }) {
   const [isLandscape, setIsLandscape] = useState(false);
   const webRef = useRef(null);
@@ -69,7 +71,7 @@ export default function ReproductorYouTube({
   // Construcción de URL / HTML del reproductor
   // En web: incluir origin; en nativo: usar HTML con iframe sin origin (evita error 153)
   const baseDomain = useMemo(() => (mode === 'nocookie' ? 'https://www.youtube-nocookie.com' : 'https://www.youtube.com'), [mode]);
-  let srcUrl = `${baseDomain}/${mode === 'watch' ? 'watch?v=' + videoId : `embed/${videoId}?autoplay=1&controls=1&fs=1&modestbranding=1&rel=0&playsinline=1&enablejsapi=1`}`;
+  let srcUrl = `${baseDomain}/${mode === 'watch' ? 'watch?v=' + videoId : `embed/${videoId}?autoplay=1&controls=1&fs=1&modestbranding=1&rel=0&playsinline=1&enablejsapi=1${muted ? '&mute=1' : ''}`}`;
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     try {
       const origin = window.location.origin;
@@ -90,7 +92,7 @@ export default function ReproductorYouTube({
             try{window.ReactNativeWebView.postMessage(JSON.stringify(data));}catch(e){}
           }
           ${mode === 'watch' ? '' : `onYouTubeIframeAPIReady = function(){
-            player = new YT.Player('player', {events: {onReady: function(){ postRN({type:'ready'}); },onStateChange: function(e){ postRN({type:'state', data: e.data}); },onError: function(e){ postRN({type:'error', code: e.data}); }}});
+            player = new YT.Player('player', {events: {onReady: function(){ try{ player.mute && player.mute(); }catch(e){}; postRN({type:'ready'}); },onStateChange: function(e){ postRN({type:'state', data: e.data}); },onError: function(e){ postRN({type:'error', code: e.data}); }}});
           }`}
         </script>
       </head>
@@ -98,7 +100,7 @@ export default function ReproductorYouTube({
         ${mode === 'watch' ? `
           <iframe id="player" src="https://m.youtube.com/watch?v=${videoId}&autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen frameborder="0" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000"></iframe>
         ` : `
-          <iframe id="player" src="${baseDomain}/embed/${videoId}?autoplay=1&controls=1&fs=1&modestbranding=1&rel=0&playsinline=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen frameborder="0" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000"></iframe>
+          <iframe id="player" src="${baseDomain}/embed/${videoId}?autoplay=1&controls=1&fs=1&modestbranding=1&rel=0&playsinline=1${muted ? '&mute=1' : ''}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen" allowfullscreen frameborder="0" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#000"></iframe>
         `}
       </body>
     </html>`;
@@ -110,7 +112,7 @@ export default function ReproductorYouTube({
           // En web, usar iframe nativo para máximo soporte
           <iframe
             title="trailer"
-            src={srcUrl}
+            src={muted && srcUrl.indexOf('mute=1') === -1 ? srcUrl + '&mute=1' : srcUrl}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
             allowFullScreen
             frameBorder="0"
@@ -141,6 +143,12 @@ export default function ReproductorYouTube({
                     if (mode === 'embed') setMode('nocookie');
                     else if (mode === 'nocookie') setMode('watch');
                     else setBlocked(true);
+                  }
+                }
+                if (data?.type === 'state') {
+                  // 0: ended, 1: playing, 2: paused, 3: buffering
+                  if (Number(data.data) === 0 && autoCloseOnEnd && typeof onClose === 'function') {
+                    try { onClose(); } catch {}
                   }
                 }
               } catch (e) {}

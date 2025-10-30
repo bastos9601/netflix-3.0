@@ -36,6 +36,30 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
   const [mensaje, setMensaje] = useState('');
   const [resetEnviado, setResetEnviado] = useState(false);
   const { setToken } = useAutenticacion();
+  const [verClave, setVerClave] = useState(false);
+
+  const handleLogin = async () => {
+    try {
+      setEnviando(true);
+      setError('');
+      if (!correo || !clave) {
+        setError('Completa correo y clave.');
+        return;
+      }
+      const { token } = await ingresarUsuario({ correo, clave });
+      setToken(token);
+      onExito?.();
+    } catch (e) {
+      const msg = (e && e.message) || '';
+      if (msg.includes('Network request failed')) {
+        setError('No se pudo conectar al servidor. Revisa tu red/BASE_URL.');
+      } else {
+        setError('Credenciales inválidas o error al ingresar.');
+      }
+    } finally {
+      setEnviando(false);
+    }
+  };
 
   return (
     <SafeAreaView style={estilos.pantalla}>
@@ -62,14 +86,21 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
               keyboardType="email-address"
               autoCapitalize="none"
             />
-            <TextInput
-              placeholder="Contraseña"
-              placeholderTextColor="#8a8a8a"
-              style={estilos.input}
-              value={clave}
-              onChangeText={setClave}
-              secureTextEntry
-            />
+            <View style={estilos.inputPwdRow}>
+              <TextInput
+                placeholder="Contraseña"
+                placeholderTextColor="#8a8a8a"
+                style={estilos.inputPwd}
+                value={clave}
+                onChangeText={setClave}
+                secureTextEntry={!verClave}
+                onSubmitEditing={handleLogin}
+                returnKeyType="go"
+              />
+              <TouchableOpacity style={estilos.togglePwd} onPress={() => setVerClave(v => !v)}>
+                <Ionicons name={verClave ? 'eye-off' : 'eye'} size={20} color="#b3b3b3" />
+              </TouchableOpacity>
+            </View>
           </>
         )}
 
@@ -140,28 +171,7 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
           <TouchableOpacity
             style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
             disabled={enviando}
-            onPress={async () => {
-              try {
-                setEnviando(true);
-                setError('');
-                if (!correo || !clave) {
-                  setError('Completa correo y clave.');
-                  return;
-                }
-                const { token } = await ingresarUsuario({ correo, clave });
-                setToken(token);
-                onExito?.();
-              } catch (e) {
-                const msg = (e && e.message) || '';
-                if (msg.includes('Network request failed')) {
-                  setError('No se pudo conectar al servidor. Revisa tu red/BASE_URL.');
-                } else {
-                  setError('Credenciales inválidas o error al ingresar.');
-                }
-              } finally {
-                setEnviando(false);
-              }
-            }}
+            onPress={handleLogin}
           >
             <Text style={estilos.botonTxt}>Iniciar sesión</Text>
           </TouchableOpacity>
@@ -316,6 +326,26 @@ const estilos = StyleSheet.create({
     paddingHorizontal: 12,
     height: 46,
     marginBottom: 12,
+  },
+  inputPwdRow: {
+    backgroundColor: '#0f0f0f',
+    borderWidth: 1,
+    borderColor: '#333',
+    borderRadius: 6,
+    height: 46,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputPwd: {
+    flex: 1,
+    color: '#fff',
+    paddingHorizontal: 12,
+  },
+  togglePwd: {
+    paddingHorizontal: 12,
+    height: '100%',
+    justifyContent: 'center',
   },
   error: { color: '#ff6b6b', marginBottom: 8 },
   botonRojo: { backgroundColor: '#E50914', borderRadius: 4, paddingVertical: 12, alignItems: 'center' },

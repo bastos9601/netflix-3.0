@@ -12,12 +12,12 @@ export default function Juegos({ onOpenBuscar }) {
   const [error, setError] = useState(null);
 
   const juegosMock = [
-    { id: 1, titulo: 'Stranger Things: 1984', descripcion: 'Juega como los personajes de Stranger Things en este emocionante juego de aventuras.', imagen: 'https://www.cnet.com/a/img/resize/78f4d1725cb6d6cd8a50ebc43c748ebb02e11672/hub/2017/10/04/fcb79536-e32f-4501-9bba-07d536e5c441/strangerthingsgame.jpg?auto=webp&width=1920', categoria: 'Aventura', rating: 4.5, destacado: true },
-    { id: 2, titulo: "The Queen's Gambit Chess", descripcion: 'Mejora tus habilidades de ajedrez con este juego inspirado en la serie.', imagen: 'https://www.cnet.com/a/img/resize/036a6ce65bd8776242f6a179944fb7373fa2fca9/hub/2023/07/10/fe2669d2-db28-4546-96c4-138bc3919ae4/queens-gambit.jpg?auto=webp&fit=crop&height=675&width=1200', categoria: 'Estrategia', rating: 4.8 },
-    { id: 3, titulo: 'Money Heist: The Experience', descripcion: 'Planifica el atraco perfecto en este juego de estrategia.', imagen: 'https://play-lh.googleusercontent.com/r8WY5MaKMLMRqFJw0yyhMXuxZQhP2_mw35s1vRrNwH_B2IYEEDCUyjRZqkDxRxMbynZ1=w526-h296-rw', categoria: 'Estrategia', rating: 4.3 },
-    { id: 4, titulo: 'Squid Game: Challenge', descripcion: 'Sobrevive a los juegos mortales en esta experiencia inmersiva.', imagen: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRWT7g_sgsTNyiJcAnZaG20jjfY2caH60dcmnout-Tw8YF2NSjC6eWSkxC4IhwP9Pp8bso&usqp=CAU', categoria: 'Supervivencia', rating: 4.6 },
-    { id: 5, titulo: 'Bridgerton: Society', descripcion: 'Navega por la alta sociedad londinense en este juego de simulación.', imagen: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8ZJBiYACxL9ppYZqvqL4RAyBhTZkVYuCa7fCxkXVTlbJOLKjyA1fHAKIDGzXmvPbRV7s&usqp=CAU', categoria: 'Simulación', rating: 4.2 },
-    { id: 6, titulo: 'The Witcher: Monster Hunt', descripcion: 'Caza monstruos como Geralt en este juego de acción.', imagen: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRMfFah_z28g-6PNpyxXYs1iz5G8Md4yp3tLl2oWRGFTT7xHNTbDKerK9VQJDz2Zyn5h0&usqp=CAU', categoria: 'Acción', rating: 4.7 },
+    { id: 1, titulo: 'Stranger Things: 1984', descripcion: 'Juega como los personajes de Stranger Things en este emocionante juego de aventuras.', imagen: 'https://picsum.photos/seed/stranger-things/1200/675', categoria: 'Aventura', rating: 4.5, destacado: true },
+    { id: 2, titulo: "The Queen's Gambit Chess", descripcion: 'Mejora tus habilidades de ajedrez con este juego inspirado en la serie.', imagen: 'https://picsum.photos/seed/queens-gambit/1200/675', categoria: 'Estrategia', rating: 4.8 },
+    { id: 3, titulo: 'Money Heist: The Experience', descripcion: 'Planifica el atraco perfecto en este juego de estrategia.', imagen: 'https://picsum.photos/seed/money-heist/1200/675', categoria: 'Estrategia', rating: 4.3 },
+    { id: 4, titulo: 'Squid Game: Challenge', descripcion: 'Sobrevive a los juegos mortales en esta experiencia inmersiva.', imagen: 'https://picsum.photos/seed/squid-game/1200/675', categoria: 'Supervivencia', rating: 4.6 },
+    { id: 5, titulo: 'Bridgerton: Society', descripcion: 'Navega por la alta sociedad londinense en este juego de simulación.', imagen: 'https://picsum.photos/seed/bridgerton/1200/675', categoria: 'Simulación', rating: 4.2 },
+    { id: 6, titulo: 'The Witcher: Monster Hunt', descripcion: 'Caza monstruos como Geralt en este juego de acción.', imagen: 'https://picsum.photos/seed/witcher/1200/675', categoria: 'Acción', rating: 4.7 },
   ];
 
   useEffect(() => {
