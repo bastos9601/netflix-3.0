@@ -28,6 +28,107 @@ import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 const { width } = Dimensions.get('window');
 
 export default function DetalleContenido({ item, onCerrar }) {
+  // Componente de video compatible con web y móvil (solo lógica, sin tocar diseño)
+  const ComponenteVideo = ({ uri, style, onLoadEnd }) => {
+    if (Platform.OS === 'web') {
+      const mutedUri = uri.includes('?')
+        ? `${uri}&mute=1&autoplay=1&enablejsapi=1&origin=http://localhost:8082`
+        : `${uri}?mute=1&autoplay=1&enablejsapi=1&origin=http://localhost:8082`;
+      return (
+        <iframe
+          src={mutedUri}
+          style={{ width: '100%', height: '100%', border: 'none', backgroundColor: '#000' }}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          referrerPolicy="origin"
+          allowFullScreen
+          onLoad={onLoadEnd}
+        />
+      );
+    } else {
+      const mutedUri = uri.includes('?') ? `${uri}&mute=1&autoplay=1` : `${uri}?mute=1&autoplay=1`;
+      const injectedJavaScript = `
+        (function() {
+          let videoStarted = false;
+          function setupVideo(video) {
+            video.muted = true;
+            video.volume = 0;
+            video.setAttribute('muted', 'true');
+            video.setAttribute('autoplay', 'muted');
+            ['play', 'playing', 'loadstart'].forEach(eventType => {
+              video.addEventListener(eventType, function() {
+                if (!videoStarted) {
+                  videoStarted = true;
+                  window.ReactNativeWebView.postMessage('video_started');
+                }
+              });
+            });
+          }
+          const videos = document.querySelectorAll('video');
+          videos.forEach(setupVideo);
+          const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+              mutation.addedNodes.forEach(function(node) {
+                if (node.tagName === 'VIDEO') {
+                  setupVideo(node);
+                } else if (node.querySelectorAll) {
+                  const newVideos = node.querySelectorAll('video');
+                  newVideos.forEach(setupVideo);
+                }
+              });
+            });
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          const originalPlay = HTMLVideoElement.prototype.play;
+          HTMLVideoElement.prototype.play = function() {
+            this.muted = true;
+            this.volume = 0;
+            if (!videoStarted) {
+              videoStarted = true;
+              window.ReactNativeWebView.postMessage('video_started');
+            }
+            return originalPlay.call(this);
+          };
+          document.addEventListener('click', function(e) {
+            const target = e.target;
+            if (target.closest('[aria-label*="play"]') ||
+                target.closest('.play-button') ||
+                target.closest('[class*="play"]') ||
+                target.tagName === 'VIDEO') {
+              setTimeout(() => {
+                if (!videoStarted) {
+                  videoStarted = true;
+                  window.ReactNativeWebView.postMessage('video_started');
+                }
+              }, 100);
+            }
+          });
+        })();
+        true;
+      `;
+      return (
+        <WebView
+          source={{ uri: mutedUri }}
+          style={style}
+          allowsInlineMediaPlayback={true}
+          mediaPlaybackRequiresUserAction={false}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          injectedJavaScript={injectedJavaScript}
+          onLoadEnd={onLoadEnd}
+          onMessage={(event) => {
+            if (event?.nativeEvent?.data === 'video_started') {
+              manejarInicioVideo();
+            }
+          }}
+        />
+      );
+    }
+  };
+
+  const manejarInicioVideo = () => {
+    // Lógica de inicio del video: no modifica diseño, solo señaliza
+    // Puedes conectar aquí cualquier estado/telemetría si lo deseas
+  };
   const [itemActual, setItemActual] = useState(item);
   const [similares, setSimilares] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -133,13 +234,12 @@ export default function DetalleContenido({ item, onCerrar }) {
     return () => { activo = false; };
   }, [esSerie, itemActual?.id]);
 
-  // Autoplay de tráiler superpuesto en la cabecera (solo web)
+  // Autoplay de tráiler superpuesto en la cabecera (web y móvil)
   useEffect(() => {
     let cancelado = false;
     let timer = null;
     (async () => {
       try {
-        if (Platform.OS !== 'web') return; // el comportamiento de overlay inline se aplica en web
         if (!itemActual?.id) return;
         const datos = await obtenerVideosContenido(itemActual?.tipo || 'movie', itemActual?.id);
         const t = datos?.trailer_principal;
@@ -222,11 +322,11 @@ export default function DetalleContenido({ item, onCerrar }) {
           setPlayer({ visible: true, url: null, youtubeId: y.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
           return;
         }
-        Alert.alert('No disponible', 'No se encontró un tráiler disponible.');
+        Alert.alert('Video no disponible', 'No se encontró un tráiler disponible.');
         // Abrir overlay con reproductor sin fuente para dar feedback
         setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
       } catch (e2) {
-        Alert.alert('No disponible', 'No se encontró la película en el catálogo local ni tráiler en la API.');
+        Alert.alert('Video no disponible', 'No se encontró la película en el catálogo local ni tráiler en la API.');
         // Abrir overlay con reproductor sin fuente para dar feedback
         setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
       }
@@ -261,10 +361,10 @@ export default function DetalleContenido({ item, onCerrar }) {
           setPlayer({ visible: true, url: null, youtubeId: y.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
           return;
         }
-        Alert.alert('No disponible', 'No se encontró un tráiler disponible de la serie.');
+        Alert.alert('Video no disponible', 'No se encontró un tráiler disponible de la serie.');
         setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
       } catch (e2) {
-        Alert.alert('No disponible', 'No se encontró el episodio local ni tráiler en la API.');
+        Alert.alert('Video no disponible', 'No se encontró el episodio local ni tráiler en la API.');
         setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
       }
     }
@@ -411,29 +511,33 @@ export default function DetalleContenido({ item, onCerrar }) {
           ) : (
             <View style={[estilos.mediaImg, { backgroundColor: '#222' }]} />
           )}
-          {/* Overlay de tráiler (web) */}
-          {Platform.OS === 'web' && previewTrailer.visible && (
+          {/* Overlay de tráiler (web y móvil) */}
+          {previewTrailer.visible && (
             <View style={estilos.trailerOverlayInline}>
               {previewTrailer.youtubeId ? (
                 Platform.OS === 'web' ? (
-                  <iframe
-                    title="trailer"
-                    src={`https://www.youtube.com/embed/${previewTrailer.youtubeId}?autoplay=1&controls=0&fs=0&modestbranding=1&rel=0&playsinline=1&mute=1`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    frameBorder="0"
+                  <ComponenteVideo
+                    uri={`https://www.youtube.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1`}
                     style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
                   />
                 ) : (
                   <WebView
                     style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
-                    source={{ html: `<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1' /></head><body style='margin:0;background:#000'><iframe src='https://m.youtube.com/watch?v=${previewTrailer.youtubeId}&autoplay=1' allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share' frameborder='0' style='position:fixed;top:0;left:0;width:100%;height:100%;'></iframe></body></html>` }}
-                    originWhitelist={["*"]}
-                    allowsFullscreenVideo
+                    source={{
+                      html: `<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\"><style>html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden;}#wrap{width:100%;height:100%;}iframe{width:100%;height:100%;border:0;display:block;}</style></head><body><div id=\"wrap\"><iframe id=\"player\" src=\"https://www.youtube.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1&autoplay=1&mute=1&enablejsapi=1\" allow=\"autoplay; encrypted-media\" allowfullscreen></iframe></div><script>var mode='embed';function fallback(){var p=document.getElementById('player');if(mode==='embed'){p.src='https://www.youtube-nocookie.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1&autoplay=1&mute=1&enablejsapi=1';mode='nocookie';}else if(mode==='nocookie'){p.src='https://m.youtube.com/watch?v=${previewTrailer.youtubeId}&autoplay=1';mode='watch';}}</script><script>var onYouTubeIframeAPIReady,player;</script><script src=\"https://www.youtube.com/iframe_api\"></script><script>onYouTubeIframeAPIReady=function(){try{player=new YT.Player('player',{events:{onReady:function(e){try{e.target.mute();e.target.playVideo();}catch(err){}},onError:function(e){var code=e&&e.data;if(code===101||code===150||code===153||code===5||code===15){fallback();}}}});}catch(err){}</script></body></html>`,
+                      baseUrl: 'https://www.youtube.com',
+                    }}
                     javaScriptEnabled
                     domStorageEnabled
                     mediaPlaybackRequiresUserAction={false}
                     allowsInlineMediaPlayback
                     mixedContentMode="always"
+                    allowsFullscreenVideo
+                    originWhitelist={["*"]}
+                    androidLayerType="hardware"
+                    androidHardwareAccelerationDisabled={false}
+                    setSupportMultipleWindows={false}
+                    userAgent={'Mozilla/5.0 (Linux; Android 12; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0 Mobile Safari/537.36'}
                   />
                 )
               ) : previewTrailer.vimeoId ? (
@@ -480,22 +584,7 @@ export default function DetalleContenido({ item, onCerrar }) {
             <Text style={estilos.captionTxt}>{/* El banco me desahuciará si no pago la renta.*/} Hola quieres ser mi tilina 😳</Text>
           </View>
 
-          {/* Botón para reproducir tráiler en móvil (requiere gesto) */}
-          {Platform.OS !== 'web' && trailerDisponible && (
-            <TouchableOpacity
-              style={[estilos.playTrailerBtn]}
-              onPress={() => {
-                if (previewTrailer.youtubeId) {
-                  setPlayer({ visible: true, url: null, youtubeId: previewTrailer.youtubeId, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
-                } else if (previewTrailer.vimeoId) {
-                  setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: previewTrailer.vimeoId, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
-                }
-              }}
-            >
-              <Ionicons name="play" size={28} color="#fff" />
-              <Text style={{ color: '#fff', marginLeft: 8, fontWeight: '700' }}>Ver tráiler</Text>
-            </TouchableOpacity>
-          )}
+
         </View>
 
         {/* Detalle */}

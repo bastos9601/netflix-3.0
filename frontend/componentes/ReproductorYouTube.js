@@ -15,7 +15,7 @@ export default function ReproductorYouTube({
   onClose,
   autoFullscreenOnLandscape = true,
   autoCloseOnEnd = true,
-  muted = true,
+  muted = false,
 }) {
   const [isLandscape, setIsLandscape] = useState(false);
   const webRef = useRef(null);
@@ -92,7 +92,7 @@ export default function ReproductorYouTube({
             try{window.ReactNativeWebView.postMessage(JSON.stringify(data));}catch(e){}
           }
           ${mode === 'watch' ? '' : `onYouTubeIframeAPIReady = function(){
-            player = new YT.Player('player', {events: {onReady: function(){ try{ player.mute && player.mute(); }catch(e){}; postRN({type:'ready'}); },onStateChange: function(e){ postRN({type:'state', data: e.data}); },onError: function(e){ postRN({type:'error', code: e.data}); }}});
+            player = new YT.Player('player', {events: {onReady: function(){ try{ ${muted ? 'player.mute && player.mute();' : 'player.unMute && player.unMute(); player.setVolume && player.setVolume(100);'} }catch(e){}; postRN({type:'ready'}); },onStateChange: function(e){ postRN({type:'state', data: e.data}); },onError: function(e){ postRN({type:'error', code: e.data}); }}});
           }`}
         </script>
       </head>
@@ -156,7 +156,7 @@ export default function ReproductorYouTube({
           />
         )
       ) : (
-        <View style={estilos.fallback}><Text style={{ color: '#fff' }}>Tráiler no disponible</Text></View>
+        <View style={estilos.fallback}><Text style={{ color: '#fff' }}>Video no disponible</Text></View>
       )}
 
       {/* Barra superior */}
