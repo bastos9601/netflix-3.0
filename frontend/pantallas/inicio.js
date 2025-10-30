@@ -204,59 +204,19 @@ export default function Inicio({ onOpenBuscar }) {
             onMyList={onMyList}
           />
 
-          {/* Listado estilo buscador para Películas y Series */}
+          {/* Listado en carrusel para Películas y Series */}
           {filtro === 'tv' ? (
-            <View style={estilos.resultsContainer}>
-              <Text style={estilos.resultsTitle}>Series populares</Text>
-              <View style={estilos.resultsGrid}>
-                {seriesPop.filter(i => i.tipo === 'tv').map((item, index) => (
-                  <TouchableOpacity
-                    key={`tv-${item.id}-${index}`}
-                    style={estilos.resultItem}
-                    onPress={() => onPressItem(item)}
-                  >
-                    {item.poster ? (
-                      <Image source={{ uri: item.poster }} style={estilos.resultPoster} />
-                    ) : (
-                      <View style={[estilos.resultPoster, estilos.posterPlaceholder]}>
-                        <Text style={estilos.placeholderIcon}>🎬</Text>
-                      </View>
-                    )}
-                    <View style={estilos.resultInfo}>
-                      <Text style={estilos.resultTitle} numberOfLines={2}>{item.titulo}</Text>
-                      <Text style={estilos.resultType}>Serie • {item.fecha ? item.fecha.slice(0,4) : 'N/A'}</Text>
-                      {item.resumen && <Text style={estilos.resultDescription} numberOfLines={3}>{item.resumen}</Text>}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+            <>
+              <FilaHorizontal titulo="Series populares" datos={seriesPop.filter(i => i.tipo === 'tv')} onPressItem={onPressItem} />
+              <FilaHorizontal titulo="Series mejor valoradas" datos={seriesPop.filter(i => i.tipo === 'tv').slice(10)} onPressItem={onPressItem} />
+              <FilaHorizontal titulo="Nuevas series" datos={seriesPop.filter(i => i.tipo === 'tv').slice(5)} onPressItem={onPressItem} />
+            </>
           ) : filtro === 'movie' ? (
-            <View style={estilos.resultsContainer}>
-              <Text style={estilos.resultsTitle}>Películas populares</Text>
-              <View style={estilos.resultsGrid}>
-                {peliculasPop.map((item, index) => (
-                  <TouchableOpacity
-                    key={`movie-${item.id}-${index}`}
-                    style={estilos.resultItem}
-                    onPress={() => onPressItem(item)}
-                  >
-                    {item.poster ? (
-                      <Image source={{ uri: item.poster }} style={estilos.resultPoster} />
-                    ) : (
-                      <View style={[estilos.resultPoster, estilos.posterPlaceholder]}>
-                        <Text style={estilos.placeholderIcon}>🎬</Text>
-                      </View>
-                    )}
-                    <View style={estilos.resultInfo}>
-                      <Text style={estilos.resultTitle} numberOfLines={2}>{item.titulo}</Text>
-                      <Text style={estilos.resultType}>Película • {item.fecha ? item.fecha.slice(0,4) : 'N/A'}</Text>
-                      {item.resumen && <Text style={estilos.resultDescription} numberOfLines={3}>{item.resumen}</Text>}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+            <>
+              <FilaHorizontal titulo="Películas populares" datos={peliculasPop} onPressItem={onPressItem} />
+              <FilaHorizontal titulo="Películas mejor valoradas" datos={peliculasPop.slice(10)} onPressItem={onPressItem} />
+              <FilaHorizontal titulo="Nuevos estrenos" datos={peliculasPop.slice(5)} onPressItem={onPressItem} />
+            </>
           ) : filtro === 'categoria' ? (
             <View style={estilos.resultsContainer}>
               <View style={estilos.cabeceraCategoria}>
@@ -279,30 +239,10 @@ export default function Inicio({ onOpenBuscar }) {
               ) : resultadosCategoria.length === 0 ? (
                 <Text style={{ color: '#bbb' }}>No hay resultados para esta categoría.</Text>
               ) : (
-                <View style={estilos.resultsGrid}>
-                  {resultadosCategoria.map((item, index) => (
-                    <TouchableOpacity
-                      key={`cat-${item.id}-${index}`}
-                      style={estilos.resultItem}
-                      onPress={() => onPressItem(item)}
-                    >
-                      {item.poster ? (
-                        <Image source={{ uri: item.poster }} style={estilos.resultPoster} />
-                      ) : (
-                        <View style={[estilos.resultPoster, estilos.posterPlaceholder]}>
-                          <Text style={estilos.placeholderIcon}>🎬</Text>
-                        </View>
-                      )}
-                      <View style={estilos.resultInfo}>
-                        <Text style={estilos.resultTitle} numberOfLines={2}>{item.titulo}</Text>
-                        <Text style={estilos.resultType}>
-                          {(item.tipo === 'movie' ? 'Película' : item.tipo === 'tv' ? 'Serie' : 'Contenido')} • {item.fecha ? item.fecha.slice(0,4) : 'N/A'}
-                        </Text>
-                        {item.resumen && <Text style={estilos.resultDescription} numberOfLines={3}>{item.resumen}</Text>}
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <FilaHorizontal 
+                  datos={resultadosCategoria} 
+                  onPressItem={onPressItem}
+                />
               )}
             </View>
           ) : (

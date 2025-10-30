@@ -282,7 +282,7 @@ export default function DetalleContenido({ item, onCerrar }) {
           </View>
           {/* Subtítulo simulado */}
           <View style={estilos.captionWrap}>
-            <Text style={estilos.captionTxt}>El banco me desahuciará si no pago la renta.</Text>
+            <Text style={estilos.captionTxt}>{/* El banco me desahuciará si no pago la renta.*/} Hola quieres ser mi tilina 😳</Text>
           </View>
         </View>
 

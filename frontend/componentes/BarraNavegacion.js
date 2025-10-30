@@ -13,11 +13,6 @@ export default function BarraNavegacion({ label = 'Inicio', onPressBuscar, onPre
       
       {/* Botones derecha */}
       <View style={estilos.botonesContainer}>
-        {/* Botón descarga */}
-        <TouchableOpacity style={estilos.boton} onPress={onPressDescargas}>
-          <Ionicons name="download-outline" size={22} color="#fff" />
-        </TouchableOpacity>
-
         {/* Botón búsqueda */}
         <TouchableOpacity style={estilos.boton} onPress={onPressBuscar}>
           <Ionicons name="search" size={22} color="#fff" />
