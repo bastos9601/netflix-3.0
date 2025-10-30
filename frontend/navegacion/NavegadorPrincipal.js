@@ -38,7 +38,7 @@ export default function NavegadorPrincipal() {
     />
   );
   if (fase === 'inicio_sesion') return <InicioSesion onExito={() => setFase('perfiles')} onCancelar={() => setFase('presentacion')} />;
-  if (fase === 'registro') return <Registro onCancel={() => setFase('presentacion')} onExito={() => setFase('inicio')} />;
+  if (fase === 'registro') return <Registro onCancel={() => setFase('presentacion')} onExito={() => setFase('perfiles')} />;
   if (fase === 'perfiles') return <Perfiles onElegir={() => setFase('inicio')} />;
 
   // Root con tabs inferiores

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { registrarUsuario } from '../servicios/api';
+import { registrarUsuario, ingresarUsuario } from '../servicios/api';
+import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 
 const { width } = Dimensions.get('window');
 
@@ -11,6 +12,7 @@ export default function Registro({ onCancel, onExito }) {
   const [clave, setClave] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
+  const { setToken } = useAutenticacion();
 
   return (
     <SafeAreaView style={estilos.pantalla}>
@@ -65,7 +67,19 @@ export default function Registro({ onCancel, onExito }) {
                 return;
               }
               await registrarUsuario({ nombre, correo, clave });
-              onExito?.();
+              // Iniciar sesión automáticamente tras registrar
+              try {
+                const login = await ingresarUsuario({ correo, clave });
+                if (login?.token) {
+                  setToken(login.token);
+                  onExito?.();
+                } else {
+                  setError('Cuenta creada, pero no se pudo iniciar sesión automáticamente.');
+                }
+              } catch (eLogin) {
+                console.error('Auto-login falló:', eLogin);
+                setError('Cuenta creada, pero hubo un problema al iniciar sesión. Intenta desde "Iniciar sesión".');
+              }
             } catch (e) {
               console.error('Error registro:', e);
               const msg = (e && e.message) || '';
