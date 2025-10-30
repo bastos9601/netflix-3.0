@@ -1,3 +1,13 @@
+/**
+ * Pantalla: Registro
+ *
+ * Propósito
+ * - Permite crear una cuenta pidiendo nombre, email y contraseña.
+ * - Tras registrar, intenta iniciar sesión automáticamente y guarda el token.
+ *
+ * Uso
+ * - Recibe `onCancel` para volver y `onExito` tras completar el registro/login.
+ */
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

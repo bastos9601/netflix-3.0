@@ -1,3 +1,5 @@
+// Controlador de perfiles:
+// Listado, creación, actualización y eliminación de perfiles del usuario.
 const pool = require('../configuracion/basedatos');
 
 async function listarPerfiles(req, res) {

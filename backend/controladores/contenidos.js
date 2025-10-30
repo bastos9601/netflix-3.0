@@ -1,3 +1,6 @@
+// Controlador de contenidos:
+// Orquesta llamadas a TMDB (tendencias, videos, búsqueda, detalles)
+// y provee lecturas de fuentes locales (JSON de películas/series).
 const { obtenerTendencias, obtenerVideos, buscarContenidos, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerCreditosTV } = require('../configuracion/tmdb');
 const fs = require('fs');
 const path = require('path');

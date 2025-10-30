@@ -1,3 +1,13 @@
+/**
+ * Pantalla: Perfiles
+ *
+ * Propósito
+ * - Lista los perfiles del usuario y permite seleccionar uno para continuar.
+ * - Ofrece agregar/editar/eliminar perfiles (edición local y eliminación vía API).
+ *
+ * Uso
+ * - Recibe `onElegir` como callback al seleccionar un perfil.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal } from 'react-native';
 import { listarPerfiles, crearPerfil, eliminarPerfil } from '../servicios/api';

@@ -1,3 +1,6 @@
+// Rutas de autenticación:
+// Define endpoints para registro, ingreso (login), login con código
+// y recuperación/restablecimiento de contraseña.
 const express = require('express');
 const router = express.Router();
 const authCtrl = require('../controladores/autenticacion');

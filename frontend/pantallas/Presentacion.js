@@ -1,3 +1,14 @@
+/**
+ * Pantalla: Presentacion
+ *
+ * Propósito
+ * - Pantalla de onboarding con carrusel tipo marketing/landing.
+ * - Muestra diapositivas con mensajes y fondos tomados de populares (si disponible).
+ * - Incluye accesos rápidos a "Iniciar sesión" y acción "Comienza ya".
+ *
+ * Uso
+ * - Recibe callbacks `onFinalizar`, `onComienzaYa`, `onIniciarSesion` para navegación.
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity, SafeAreaView, Image, Platform, StatusBar } from 'react-native';
 import { obtenerPopulares } from '../servicios/api';

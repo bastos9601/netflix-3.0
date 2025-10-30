@@ -1,3 +1,5 @@
+// Utilidad de correo:
+// Crea un transporter SMTP (si está configurado) y envía emails.
 const nodemailer = require('nodemailer');
 
 function crearTransporter() {

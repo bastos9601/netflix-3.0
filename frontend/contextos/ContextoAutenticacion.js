@@ -1,3 +1,5 @@
+// Contexto de Autenticación:
+// Provee estado global: token, usuario, perfiles y perfil activo.
 import React, { createContext, useContext, useState } from 'react';
 
 const Contexto = createContext(null);

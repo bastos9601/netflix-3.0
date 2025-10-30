@@ -1,3 +1,5 @@
+// Rutas de reproducción:
+// Gestiona el progreso de visualización (leer y guardar).
 const express = require('express');
 const router = express.Router();
 const repCtrl = require('../controladores/reproduccion');

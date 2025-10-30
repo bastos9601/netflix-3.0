@@ -1,3 +1,4 @@
+// Cliente y utilidades para consumir la API de TMDB.
 const axios = require('axios');
 require('dotenv').config();
 

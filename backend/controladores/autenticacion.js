@@ -1,4 +1,6 @@
-// Controlador de autenticación (registro, login, passwordless, reset)
+// Controlador de autenticación:
+// Implementa registro/login tradicional, login por código (passwordless)
+// y flujo de recuperación/restablecimiento de contraseña.
 const pool = require('../configuracion/basedatos');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');

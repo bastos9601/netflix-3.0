@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HeroBanner({ item, onPlay, onMyList }) {
   if (!item) return null;
@@ -26,11 +27,11 @@ export default function HeroBanner({ item, onPlay, onMyList }) {
             </View>
             <View style={estilos.botones}>
               <TouchableOpacity style={[estilos.btn, estilos.btnPlay]} onPress={() => onPlay?.(item)}>
-                <Text style={[estilos.btnIcon, { color: '#000' }]}>▶</Text>
+                <Ionicons name="play" size={18} color="#000" />
                 <Text style={[estilos.btnTxt, { color: '#000' }]}>Reproducir</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[estilos.btn, estilos.btnLista]} onPress={() => onMyList?.(item)}>
-                <Text style={estilos.btnIcon}>＋</Text>
+                <Ionicons name="add" size={18} color="#fff" />
                 <Text style={estilos.btnTxt}>Mi lista</Text>
               </TouchableOpacity>
             </View>

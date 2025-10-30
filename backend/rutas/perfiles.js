@@ -1,3 +1,5 @@
+// Rutas de perfiles:
+// CRUD de perfiles asociado al usuario autenticado.
 const express = require('express');
 const router = express.Router();
 const perfilesCtrl = require('../controladores/perfiles');

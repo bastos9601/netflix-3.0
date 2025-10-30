@@ -1,3 +1,5 @@
+// Punto de entrada del frontend:
+// Monta el proveedor de autenticación y el navegador principal.
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import NavegadorPrincipal from './navegacion/NavegadorPrincipal';

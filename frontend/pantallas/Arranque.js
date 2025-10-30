@@ -1,3 +1,14 @@
+/**
+ * Pantalla: Arranque
+ *
+ * Propósito
+ * - Pantalla de splash/arranque con animación del logotipo de Netflix.
+ * - Se muestra mientras la app prepara el entorno inicial.
+ *
+ * Detalles
+ * - Usa `Animated` para opacidad y escala del texto "NETFLIX".
+ * - Presenta un `ActivityIndicator` y mensaje "Cargando...".
+ */
 import React, { useEffect, useRef } from 'react';
 import { View, Animated, ActivityIndicator, StyleSheet, Text } from 'react-native';
 

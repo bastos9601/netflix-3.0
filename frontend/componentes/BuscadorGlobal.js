@@ -1,3 +1,5 @@
+// Componente de buscador global:
+// Muestra un modal con barra de búsqueda y resultados usando la API.
 import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ActivityIndicator, ScrollView, TextInput, Image, StyleSheet } from 'react-native';
 import { buscarContenidos } from '../servicios/api';

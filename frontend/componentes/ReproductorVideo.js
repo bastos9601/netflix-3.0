@@ -1,3 +1,28 @@
+/**
+ * Componente: ReproductorVideo
+ *
+ * Propósito
+ * - Reproduce video embebido desde una URL directa (mp4/m3u8/HLS).
+ * - Ofrece controles nativos y gestión de orientación (bloqueo en horizontal).
+ * - Puede entrar/salir de modo fullscreen automáticamente al rotar a landscape.
+ * - Incluye un panel opcional de episodios para contenido tipo serie.
+ *
+ * Uso
+ * - Proveer `sourceUrl` con la fuente del video y, opcionalmente, `poster`.
+ * - Para series, pasar `episodes`, `seasonNumber` y `currentEpisodeNumber`.
+ * - Maneja estados de carga y errores mostrando overlays.
+ *
+ * Props clave
+ * - `sourceUrl`: string URL del video (mp4/m3u8)
+ * - `poster`: string URL de imagen de portada opcional
+ * - `autoPlay`: boolean, auto iniciar reproducción
+ * - `autoFullscreenOnLandscape`: boolean, activar fullscreen al rotar
+ * - `onClose`: función de callback para cerrar el reproductor
+ * - `episodes`: array con episodios { numero, titulo, imagen }
+ * - `currentEpisodeNumber`: número del episodio activo
+ * - `seasonNumber`: número de temporada actual
+ * - `onSelectEpisode`: callback al seleccionar episodio
+ */
 import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Platform, Text, StatusBar, Dimensions, TouchableOpacity, FlatList, Image } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';

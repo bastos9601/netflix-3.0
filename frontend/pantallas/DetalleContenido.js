@@ -1,3 +1,17 @@
+/**
+ * Pantalla: DetalleContenido
+ *
+ * Propósito
+ * - Muestra la ficha detallada de una película o serie.
+ * - Presenta portada, metadatos, descripción y acciones (reproducir, descargar, mi lista).
+ * - Integra reproductores (Video directo, YouTube, Vimeo) y panel de episodios para series.
+ * - Carga similares y verifica/gestiona el estado en "Mi Lista" mediante la API.
+ *
+ * Uso
+ * - Recibe `item` con la información básica (id, tipo, título, poster/fondo).
+ * - Invoca API para detalles de series (temporadas/episodios) y videos.
+ * - `onCerrar` permite volver/cerrar el overlay de detalle.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

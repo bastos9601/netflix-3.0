@@ -1,3 +1,5 @@
+// Middleware de autenticación:
+// Verifica el token JWT en el header Authorization y adjunta el payload.
 const jwt = require('jsonwebtoken');
 
 function verificarToken(req, res, next) {

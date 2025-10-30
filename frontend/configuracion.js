@@ -1,3 +1,5 @@
+// Configuración del frontend:
+// Resuelve la BASE_URL del backend según plataforma/entorno (Expo).
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 

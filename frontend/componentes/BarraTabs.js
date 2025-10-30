@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const items = [
-  { key: 'inicio', label: 'Inicio', icon: '🏠' },
-  { key: 'juegos', label: 'Juegos', icon: '🎮' },
-  { key: 'nuevos', label: 'Nuevos y popular', icon: '📰' },
-  { key: 'mi', label: 'Mi Netflix', icon: '👤' },
+  { key: 'inicio', label: 'Inicio', iconName: 'home' },
+  { key: 'juegos', label: 'Juegos', iconName: 'game-controller-outline' },
+  { key: 'nuevos', label: 'Nuevos y popular', iconName: 'newspaper-outline' },
+  { key: 'mi', label: 'Mi Netflix', iconName: 'person-circle' },
 ];
 
 export default function BarraTabs({ activo = 'inicio', onCambiar }) {
@@ -15,7 +16,12 @@ export default function BarraTabs({ activo = 'inicio', onCambiar }) {
         const seleccionado = activo === it.key;
         return (
           <TouchableOpacity key={it.key} style={estilos.item} onPress={() => onCambiar?.(it.key)}>
-            <Text style={[estilos.icono, seleccionado ? estilos.sel : estilos.noSel]}>{it.icon}</Text>
+            <Ionicons
+              name={it.iconName}
+              size={22}
+              color={seleccionado ? '#fff' : '#8b8b8b'}
+              style={{ marginBottom: 2 }}
+            />
             <Text style={[estilos.texto, seleccionado ? estilos.sel : estilos.noSel]} numberOfLines={1}>{it.label}</Text>
           </TouchableOpacity>
         );
@@ -40,7 +46,6 @@ const estilos = StyleSheet.create({
     paddingBottom: 6,
   },
   item: { alignItems: 'center', width: '25%' },
-  icono: { fontSize: 18, marginBottom: 2 },
   texto: { fontSize: 11 },
   sel: { color: '#fff' },
   noSel: { color: '#8b8b8b' },

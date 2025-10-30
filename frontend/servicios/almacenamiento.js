@@ -1,4 +1,5 @@
-// Almacenamiento simple en memoria para demostración.
+// Servicio de almacenamiento (demo):
+// Guarda y obtiene progreso en memoria (Map), no persistente.
 const memoria = new Map();
 
 export async function guardarProgreso(clave, segundo) {

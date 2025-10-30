@@ -1,3 +1,4 @@
+// Registro del componente raíz de la app para Expo.
 import { registerRootComponent } from 'expo';
 
 import App from './App';

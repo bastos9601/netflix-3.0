@@ -1,3 +1,15 @@
+/**
+ * Pantalla: Inicio
+ *
+ * Propósito
+ * - Vista principal con banner destacado (HeroBanner) y secciones de películas/series.
+ * - Incluye buscador con modal, debounce y resultados listados.
+ * - Ofrece chips de filtro y un explorador por categorías (con búsqueda por género).
+ * - Integra acciones de reproducir y agregar a "Mi Lista".
+ *
+ * Uso
+ * - Recibe `onOpenBuscar` para abrir el buscador desde la barra.
+ */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Modal, TextInput, Image, Alert } from 'react-native';
 import BarraNavegacion from '../componentes/BarraNavegacion';

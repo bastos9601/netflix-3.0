@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function BarraNavegacion({ label = 'Inicio', onPressBuscar, onPressDescargas }) {
   return (
@@ -14,12 +15,12 @@ export default function BarraNavegacion({ label = 'Inicio', onPressBuscar, onPre
       <View style={estilos.botonesContainer}>
         {/* Botón descarga */}
         <TouchableOpacity style={estilos.boton} onPress={onPressDescargas}>
-          <Text style={estilos.iconoDescarga}>⬇</Text>
+          <Ionicons name="download-outline" size={22} color="#fff" />
         </TouchableOpacity>
-        
+
         {/* Botón búsqueda */}
         <TouchableOpacity style={estilos.boton} onPress={onPressBuscar}>
-          <Text style={estilos.iconoBusqueda}>🔍</Text>
+          <Ionicons name="search" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
@@ -55,14 +56,7 @@ const estilos = StyleSheet.create({
     marginLeft: 20,
     padding: 4,
   },
-  iconoDescarga: {
-    color: '#fff',
-    fontSize: 20,
-  },
-  iconoBusqueda: {
-    color: '#fff',
-    fontSize: 18,
-  },
+  // Iconos se manejan con Ionicons
   inicio: {
     color: '#fff',
     fontSize: 18,

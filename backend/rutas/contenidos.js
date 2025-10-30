@@ -1,3 +1,6 @@
+// Rutas de contenidos:
+// Expone endpoints para obtener populares, buscar, videos y detalles
+// de series, además de fuentes locales desde JSON.
 const express = require('express');
 const router = express.Router();
 const contenidosCtrl = require('../controladores/contenidos');

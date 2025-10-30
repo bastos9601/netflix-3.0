@@ -1,3 +1,19 @@
+/**
+ * Componente: ReproductorVimeo
+ *
+ * Propósito
+ * - Visualiza videos de Vimeo mediante `iframe` (web) o `WebView` (native).
+ * - Bloquea la orientación en horizontal mientras está activo y oculta la barra de estado.
+ * - Incluye botón de cierre opcional.
+ *
+ * Uso
+ * - Proveer `videoId` del recurso en Vimeo y opcionalmente `onClose`.
+ * - Crea el `src` del embed: https://player.vimeo.com/video/{videoId} con autoplay.
+ *
+ * Props clave
+ * - `videoId`: string con el identificador de Vimeo.
+ * - `onClose`: función de callback para cerrar el reproductor.
+ */
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Platform, StatusBar, TouchableOpacity, Text } from 'react-native';
 import { WebView } from 'react-native-webview';

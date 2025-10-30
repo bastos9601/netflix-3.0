@@ -1,3 +1,5 @@
+// Selector de perfil:
+// Placeholder para escoger perfil activo en la app.
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 

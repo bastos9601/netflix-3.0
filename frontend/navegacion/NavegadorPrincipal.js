@@ -1,3 +1,6 @@
+// Navegador principal:
+// Controla el flujo de pantallas (arranque, presentación, login, registro, perfiles)
+// y el root con tabs inferiores.
 import React, { useEffect, useState } from 'react';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import Inicio from '../pantallas/inicio';

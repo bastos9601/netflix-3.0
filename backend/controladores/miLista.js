@@ -1,3 +1,5 @@
+// Controlador de Mi Lista:
+// Gestiona operaciones CRUD sobre la lista personal por perfil.
 const pool = require('../configuracion/basedatos');
 
 async function obtenerMiLista(req, res) {

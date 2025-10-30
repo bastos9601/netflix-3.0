@@ -1,3 +1,5 @@
+// Componente ReproductorYouTube:
+// Reproduce trailers de YouTube (WebView/iframe), maneja errores y fullscreen.
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { View, StyleSheet, Platform, Dimensions, StatusBar, Text, TouchableOpacity, Linking } from 'react-native';
 import Constants from 'expo-constants';

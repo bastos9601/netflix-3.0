@@ -1,3 +1,5 @@
+// Cliente API del frontend:
+// Expone funciones para consumir el backend (contenidos, perfiles, auth, listas).
 import CONFIGURACION from '../configuracion';
 
 export async function obtenerPopulares({ tipo = 'all', periodo = 'week' } = {}) {

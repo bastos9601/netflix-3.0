@@ -1,3 +1,14 @@
+/**
+ * Pantalla: MiNetflix
+ *
+ * Propósito
+ * - Hub del usuario: muestra información del perfil, "Mi Lista" y vistos recientemente.
+ * - Permite editar/cambiar perfil y accesos a configuraciones (placeholders).
+ * - Carga perfiles y lista desde la API usando el token del contexto.
+ *
+ * Uso
+ * - Recibe `onOpenBuscar` para abrir el buscador global.
+ */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Image, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

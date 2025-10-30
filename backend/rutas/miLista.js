@@ -1,3 +1,5 @@
+// Rutas de Mi Lista:
+// Gestiona la lista personal por perfil: obtener, verificar, agregar y quitar.
 const express = require('express');
 const { obtenerMiLista, agregarAMiLista, quitarDeMiLista, verificarEnMiLista } = require('../controladores/miLista');
 const { verificarToken } = require('../middlewares/autenticacion');

@@ -1,3 +1,13 @@
+/**
+ * Pantalla: NuevosPopulares
+ *
+ * Propósito
+ * - Explora contenido popular con filtros (chips) por películas, series y tendencias.
+ * - Carga múltiples listas desde la API y muestra secciones con FilaHorizontal.
+ *
+ * Uso
+ * - Recibe `onOpenBuscar` para invocar el buscador.
+ */
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
 import BarraNavegacion from '../componentes/BarraNavegacion';

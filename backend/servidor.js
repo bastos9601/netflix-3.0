@@ -1,3 +1,5 @@
+// Servidor principal del backend:
+// Configura Express, CORS, rutas y inicializa la base de datos.
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');

@@ -1,3 +1,4 @@
+// Configuración del pool de MySQL (mysql2/promise) usando variables de entorno.
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 

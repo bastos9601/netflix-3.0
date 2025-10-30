@@ -1,3 +1,5 @@
+// Fila horizontal de pósters:
+// Renderiza una lista horizontal de contenidos con imagen y callback.
 import React from 'react';
 import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
 

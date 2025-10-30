@@ -1,3 +1,5 @@
+// Controlador de reproducción:
+// Guarda y obtiene el progreso de visualización por perfil y contenido.
 const pool = require('../configuracion/basedatos');
 
 // Guarda o actualiza progreso por perfil y contenido TMDB

@@ -1,3 +1,20 @@
+/**
+ * Pantalla: InicioSesion
+ *
+ * Propósito
+ * - Permite iniciar sesión con contraseña, login sin contraseña vía código y flujo de restablecimiento.
+ * - Usa el contexto de autenticación para almacenar el token al ingresar.
+ *
+ * Uso
+ * - Modo `password`: email + contraseña.
+ * - Modo `codigo`: solicita y valida código de 6 dígitos enviado al correo.
+ * - Modo `reset`: solicita token de restablecimiento y define nueva contraseña.
+ *
+ * Props clave
+ * - `onExito`: callback cuando se ingresa correctamente.
+ * - `onCancelar`: volver atrás.
+ * - `onIrRegistro`: navegación hacia registro.
+ */
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
