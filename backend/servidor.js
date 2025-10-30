@@ -9,6 +9,7 @@ const rutasAuth = require('./rutas/autenticacion');
 const rutasPerfiles = require('./rutas/perfiles');
 const rutasReproduccion = require('./rutas/reproduccion');
 const rutasMiLista = require('./rutas/miLista');
+const rutasCalificaciones = require('./rutas/calificaciones');
 
 const app = express();
 app.use(cors({ origin: '*' }));
@@ -55,6 +56,18 @@ async function inicializarBD() {
         poster VARCHAR(500) NULL,
         agregado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (perfil_id, tipo, contenido_id),
+        FOREIGN KEY (perfil_id) REFERENCES perfiles(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    // Tabla para calificaciones (si no existe)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS calificaciones (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        perfil_id INT NOT NULL,
+        contenido_id VARCHAR(64) NOT NULL,
+        tipo VARCHAR(10) NOT NULL,
+        estrellas INT NOT NULL,
+        fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (perfil_id) REFERENCES perfiles(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
@@ -105,6 +118,7 @@ app.use('/perfiles', rutasPerfiles);
 app.use('/contenidos', rutasContenidos);
 app.use('/reproduccion', rutasReproduccion);
 app.use('/mi-lista', rutasMiLista);
+app.use('/calificaciones', rutasCalificaciones);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {

@@ -215,3 +215,51 @@ export async function verificarEnMiLista(token, perfilId, { tipo, contenido_id }
   const json = await resp.json();
   return json.enMiLista || false;
 }
+
+// Calificaciones
+export async function guardarCalificacion(token, { perfil_id, contenido_id, tipo, estrellas }) {
+  const url = `${CONFIGURACION.BASE_URL}/calificaciones`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ perfil_id, contenido_id, tipo, estrellas })
+  });
+  if (!resp.ok) {
+    // intentar leer mensaje del servidor
+    try {
+      const json = await resp.json();
+      const msg = json && (json.error || json.message || JSON.stringify(json));
+      throw new Error(msg || 'Error al guardar calificación');
+    } catch (e) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(text || 'Error al guardar calificación');
+    }
+  }
+  return resp.json();
+}
+
+export async function obtenerCalificaciones(token, perfil_id) {
+  const url = `${CONFIGURACION.BASE_URL}/calificaciones/${perfil_id}`;
+  const resp = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!resp.ok) throw new Error('Error al obtener calificaciones');
+  return resp.json();
+}
+
+export async function eliminarCalificacion(token, { perfil_id, contenido_id, tipo }) {
+  const url = `${CONFIGURACION.BASE_URL}/calificaciones`;
+  const resp = await fetch(url, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ perfil_id, contenido_id, tipo })
+  });
+  if (!resp.ok) {
+    try {
+      const json = await resp.json();
+      throw new Error(json && (json.error || JSON.stringify(json)) || 'Error al eliminar calificación');
+    } catch (e) {
+      const text = await resp.text().catch(() => '');
+      throw new Error(text || 'Error al eliminar calificación');
+    }
+  }
+  return resp.json();
+}

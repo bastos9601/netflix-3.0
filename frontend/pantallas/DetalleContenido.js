@@ -1,3 +1,4 @@
+import { guardarCalificacion } from '../servicios/api';
 /**
  * Pantalla: DetalleContenido
  *
@@ -15,11 +16,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Modal } from 'react-native';
 import ReproductorVideo from '../componentes/ReproductorVideo';
 import ReproductorYouTube from '../componentes/ReproductorYouTube';
 import ReproductorVimeo from '../componentes/ReproductorVimeo';
 import FilaHorizontal from '../componentes/FilaHorizontal';
-import { obtenerPopulares, agregarAMiLista, quitarDeMiLista, verificarEnMiLista, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerVideosContenido, obtenerFuentePeliculaLocal, obtenerFuenteSerieLocal } from '../servicios/api';
+import { obtenerPopulares, agregarAMiLista, quitarDeMiLista, verificarEnMiLista, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerVideosContenido, obtenerFuentePeliculaLocal, obtenerFuenteSerieLocal, obtenerCalificaciones, eliminarCalificacion } from '../servicios/api';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 
 const { width } = Dimensions.get('window');
@@ -34,6 +36,10 @@ export default function DetalleContenido({ item, onCerrar }) {
   const [cargandoLista, setCargandoLista] = useState(false);
   // Estados para series (TV)
   const esSerie = itemActual?.tipo === 'tv';
+    // Estados para calificación
+    const [modalCalificar, setModalCalificar] = useState(false);
+    const [calificacion, setCalificacion] = useState(0);
+    const [enviandoCalificacion, setEnviandoCalificacion] = useState(false);
   const [detallesSerie, setDetallesSerie] = useState(null);
   const [temporadaSeleccionada, setTemporadaSeleccionada] = useState(null);
   const [episodios, setEpisodios] = useState([]);
@@ -81,6 +87,24 @@ export default function DetalleContenido({ item, onCerrar }) {
       }
     })();
   }, [itemActual?.id, itemActual?.tipo, token, perfilActual?.id]);
+
+  // Cuando se abre el modal de calificación, cargar la calificación existente (si la hay)
+  useEffect(() => {
+    if (!modalCalificar) return;
+    let activo = true;
+    (async () => {
+      try {
+        if (!token || !perfilActual?.id || !itemActual?.id) return;
+        const califs = await obtenerCalificaciones(token, perfilActual.id);
+        if (!activo) return;
+        const encontrado = (califs || []).find(c => String(c.contenido_id) === String(itemActual.id) && c.tipo === itemActual.tipo);
+        setCalificacion(encontrado ? Number(encontrado.estrellas) : 0);
+      } catch (e) {
+        console.log('Error cargando calificación existente:', e);
+      }
+    })();
+    return () => { activo = false; };
+  }, [modalCalificar, token, perfilActual?.id, itemActual?.id, itemActual?.tipo]);
 
   // Cargar detalles y primera temporada si es serie
   useEffect(() => {
@@ -226,6 +250,72 @@ export default function DetalleContenido({ item, onCerrar }) {
   return (
     <View style={estilos.overlay}>
       <StatusBar barStyle="light-content" />
+        {/* Modal de calificación */}
+        <Modal visible={modalCalificar} transparent animationType="fade">
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}
+            onPress={() => setModalCalificar(false)}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              style={{ backgroundColor: '#222', borderRadius: 12, padding: 24, alignItems: 'center', width: 300 }}
+              onPress={() => {}}
+            >
+              {/* Poster dentro del modal de calificación */}
+              {itemActual?.poster ? (
+                <Image source={{ uri: itemActual.poster }} style={{ width: 140, height: 210, borderRadius: 8, marginBottom: 12 }} />
+              ) : null}
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Califica esta película</Text>
+              <View style={{ flexDirection: 'row', marginBottom: 18 }}>
+                {[0,1,2,3,4,5].map((num) => (
+                  <TouchableOpacity key={num} onPress={() => setCalificacion(num)}>
+                    <Ionicons name={num <= calificacion ? 'star' : 'star-outline'} size={36} color={num <= calificacion ? '#FFD700' : '#888'} style={{ marginHorizontal: 4 }} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={{ backgroundColor: '#E50914', borderRadius: 8, paddingHorizontal: 24, paddingVertical: 10, marginBottom: 8 }}
+                disabled={enviandoCalificacion}
+                onPress={async () => {
+                  setEnviandoCalificacion(true);
+                  try {
+                    if (!token || !perfilActual?.id || !itemActual?.id) throw new Error('Debes iniciar sesión y seleccionar un perfil');
+                    await guardarCalificacion(token, {
+                      perfil_id: perfilActual.id,
+                      contenido_id: itemActual.id,
+                      tipo: itemActual.tipo,
+                      estrellas: calificacion
+                    });
+                    setModalCalificar(false);
+                    Alert.alert('¡Gracias!', `Calificación guardada: ${calificacion} estrellas`);
+                  } catch (e) {
+                    Alert.alert('Error', e.message || 'No se pudo guardar la calificación');
+                  } finally {
+                    setEnviandoCalificacion(false);
+                  }
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Guardar</Text>
+              </TouchableOpacity>
+              {/* Eliminado botón Cancelar por petición del usuario; cerrar tocando fuera del modal */}
+              <TouchableOpacity onPress={async () => {
+                // Eliminar calificación
+                try {
+                  if (!token || !perfilActual?.id || !itemActual?.id) throw new Error('Debes iniciar sesión y seleccionar un perfil');
+                  await eliminarCalificacion(token, { perfil_id: perfilActual.id, contenido_id: itemActual.id, tipo: itemActual.tipo });
+                  setCalificacion(0);
+                  setModalCalificar(false);
+                  Alert.alert('Éxito', 'Calificación eliminada');
+                } catch (e) {
+                  Alert.alert('Error', e.message || 'No se pudo eliminar la calificación');
+                }
+              }}>
+                <Text style={{ color: '#fff', marginTop: 10 }}>Quitar calificación</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
       {player.visible && (
         <View style={estilos.playerOverlay}>
           <View style={estilos.playerTopBar}>
@@ -380,8 +470,8 @@ export default function DetalleContenido({ item, onCerrar }) {
                 {enMiLista ? 'En Mi Lista' : 'Mi lista'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={estilos.accion}>
-              <Ionicons name="thumbs-up" size={22} color="#fff" />
+            <TouchableOpacity style={estilos.accion} onPress={() => setModalCalificar(true)}>
+              <Ionicons name="star" size={22} color="#FFD700" />
               <Text style={estilos.accionTxt}>Calificar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={estilos.accion}>

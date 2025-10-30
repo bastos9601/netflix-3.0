@@ -16,7 +16,7 @@ import BarraNavegacion from '../componentes/BarraNavegacion';
 import FilaHorizontal from '../componentes/FilaHorizontal';
 import DetalleContenido from './DetalleContenido';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
-import { obtenerMiLista, listarPerfiles, actualizarPerfil } from '../servicios/api';
+import { obtenerMiLista, listarPerfiles, actualizarPerfil, obtenerCalificaciones, quitarDeMiLista, eliminarCalificacion } from '../servicios/api';
 
 export default function MiNetflix({ onOpenBuscar }) {
   const { token, setToken, usuario, perfiles, setPerfiles, perfilActual, setPerfilActual } = useAutenticacion();
@@ -28,6 +28,7 @@ export default function MiNetflix({ onOpenBuscar }) {
   const [mostrarPerfiles, setMostrarPerfiles] = useState(false);
   const [editandoPerfil, setEditandoPerfil] = useState(null);
   const [nuevoNombrePerfil, setNuevoNombrePerfil] = useState('');
+  const [misCalificaciones, setMisCalificaciones] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -47,6 +48,28 @@ export default function MiNetflix({ onOpenBuscar }) {
         
         // Mock para historial visto (se puede implementar después)
         setHistorialVisto(lista.slice(0, 3));
+        
+        // Cargar calificaciones
+        try {
+          const califs = await obtenerCalificaciones(token, perfilActual.id);
+          // Asegurarnos de que las calificaciones tengan la misma estructura de poster que Mi Lista
+          const califsConPoster = califs.map(c => {
+            // Si ya tiene poster_path de TMDB, lo dejamos
+            if (c.poster_path) return c;
+            
+            // Si tiene poster pero no poster_path, extraemos el poster_path si es de TMDB
+            if (c.poster && c.poster.includes('tmdb')) {
+              const match = c.poster.match(/\/p\/\w+\/(.*)/);
+              if (match && match[1]) {
+                return { ...c, poster_path: `/${match[1]}` };
+              }
+            }
+            return c;
+          });
+          setMisCalificaciones(califsConPoster);
+        } catch (e) {
+          setMisCalificaciones([]);
+        }
       } catch (e) {
         console.error('Error al cargar Mi Lista:', e);
         setError('Error al cargar los datos del perfil');
@@ -98,6 +121,43 @@ export default function MiNetflix({ onOpenBuscar }) {
       Alert.alert('Éxito', 'Perfil actualizado correctamente');
     } catch (error) {
       Alert.alert('Error', 'No se pudo actualizar el perfil');
+    }
+  };
+
+  const manejarQuitarFavoritoDesdeCalificacion = async (c) => {
+    if (!token || !perfilActual?.id) {
+      Alert.alert('Error', 'Debes iniciar sesión para esta acción');
+      return;
+    }
+    try {
+      await quitarDeMiLista(token, perfilActual.id, { tipo: c.tipo, contenido_id: c.contenido_id });
+      // Actualizar estado de Mi Lista localmente
+      setMiLista(prev => prev.filter(i => !(String(i.id) === String(c.contenido_id) && i.tipo === c.tipo)));
+      Alert.alert('Éxito', 'El contenido fue quitado de Mi lista');
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo quitar de Mi lista');
+    }
+  };
+  
+  // Función para eliminar una calificación
+  const manejarEliminarCalificacion = async (c) => {
+    if (!token || !perfilActual?.id) {
+      Alert.alert('Error', 'Debes iniciar sesión para esta acción');
+      return;
+    }
+    try {
+      await eliminarCalificacion(token, { 
+        perfil_id: perfilActual.id, 
+        contenido_id: c.contenido_id, 
+        tipo: c.tipo 
+      });
+      // Actualizar estado de calificaciones localmente
+      setMisCalificaciones(prev => prev.filter(item => 
+        !(String(item.contenido_id) === String(c.contenido_id) && item.tipo === c.tipo)
+      ));
+      Alert.alert('Éxito', 'La calificación fue eliminada');
+    } catch (e) {
+      Alert.alert('Error', e.message || 'No se pudo eliminar la calificación');
     }
   };
 
@@ -182,6 +242,41 @@ export default function MiNetflix({ onOpenBuscar }) {
 
         {/* Vistos recientemente */}
         <FilaHorizontal titulo="Vistos recientemente" datos={historialVisto} onPressItem={(item) => setDetalleItem(item)} />
+
+        {/* Mis calificaciones */}
+        {misCalificaciones.length > 0 && (
+          <View style={{ marginTop: 18 }}>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>Mis calificaciones</Text>
+            {misCalificaciones.map((c) => (
+              <View key={c.id || `${c.contenido_id}_${c.tipo}`} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                {/* Imagen con portada directa de la API */}
+                <Image 
+                  source={{ 
+                    uri: c.poster_path 
+                      ? `https://image.tmdb.org/t/p/w200${c.poster_path}` 
+                      : c.poster
+                  }} 
+                  style={{ width: 60, height: 90, borderRadius: 6, backgroundColor: '#333', marginRight: 12 }} 
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{c.titulo || c.contenido_id}</Text>
+                  <View style={{ flexDirection: 'row', marginTop: 4 }}>
+                    {[0,1,2,3,4,5].map(num => (
+                      <Ionicons key={num} name={num <= c.estrellas ? 'star' : 'star-outline'} size={22} color={num <= c.estrellas ? '#FFD700' : '#888'} />
+                    ))}
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row' }}>
+                  {/* Botón para eliminar calificación */}
+                  <TouchableOpacity style={[estilos.accionBtn, { paddingHorizontal: 10, backgroundColor: '#E50914' }]} onPress={() => manejarEliminarCalificacion(c)}>
+                    <Ionicons name="trash" size={18} color="#fff" />
+                    <Text style={[estilos.accionTxt, { marginLeft: 6, fontSize: 12 }]}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {!!detalleItem && (
