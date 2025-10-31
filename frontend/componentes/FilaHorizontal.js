@@ -2,6 +2,7 @@
 // Renderiza una lista horizontal de contenidos con imagen y callback.
 import React from 'react';
 import { View, Text, FlatList, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { pressProps } from '../util/press';
 
 export default function FilaHorizontal({ titulo, datos = [], onPressItem }) {
   return (
@@ -14,7 +15,7 @@ export default function FilaHorizontal({ titulo, datos = [], onPressItem }) {
         keyExtractor={(i, idx) => `${i.tipo}-${i.id}-${idx}`}
         contentContainerStyle={{ paddingHorizontal: 12 }}
         renderItem={({ item }) => (
-          <TouchableOpacity style={estilos.item} onPress={() => onPressItem?.(item)}>
+          <TouchableOpacity style={estilos.item} {...pressProps(() => onPressItem?.(item))}>
             {item.poster ? (
               <Image source={{ uri: item.poster }} style={estilos.poster} />
             ) : (

@@ -4,6 +4,14 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "node scripts/dev.js",
-    "dev:mysql": "node scripts/dev-mysql.js"
+    "dev:mysql": "node scripts/dev-mysql.js",
+    "web": "node scripts/dev-web.js",
+    "mobile": "node scripts/dev-mobile-ngrok.js",
+    "mobile:tunnel": "node scripts/dev-mobile-tunnel.js",
+    "mobile:ngrok": "node scripts/dev-mobile-ngrok.js"
+  },
+  "devDependencies": {
+    "localtunnel": "^2.0.2",
+    "ngrok": "^4.3.3"
   }
 }

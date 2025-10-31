@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
+import { pressProps } from '../util/press';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function HeroBanner({ item, onPlay, onMyList }) {
+export default function HeroBanner({ item, onPlay, onMyList, onPressBanner }) {
   if (!item) return null;
 
   return (
@@ -13,7 +14,9 @@ export default function HeroBanner({ item, onPlay, onMyList }) {
           style={estilos.fondo}
           imageStyle={{ resizeMode: 'cover', borderRadius: 12 }}
         >
-          <View style={estilos.overlay} />
+          {/* Área clicable sobre la imagen, sin bloquear botones */}
+          <TouchableOpacity style={estilos.touchFill} {...pressProps(() => onPressBanner?.(item))} />
+          <View style={estilos.overlay} pointerEvents="none" />
           <View style={estilos.contenido}>
             <Text style={estilos.titulo} numberOfLines={2}>{item.titulo}</Text>
             <View style={estilos.chips}>
@@ -26,11 +29,11 @@ export default function HeroBanner({ item, onPlay, onMyList }) {
               <Text style={estilos.chip}>Sátira</Text>
             </View>
             <View style={estilos.botones}>
-              <TouchableOpacity style={[estilos.btn, estilos.btnPlay]} onPress={() => onPlay?.(item)}>
+              <TouchableOpacity style={[estilos.btn, estilos.btnPlay]} {...pressProps(() => onPlay?.(item))}>
                 <Ionicons name="play" size={18} color="#000" />
                 <Text style={[estilos.btnTxt, { color: '#000' }]}>Reproducir</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[estilos.btn, estilos.btnLista]} onPress={() => onMyList?.(item)}>
+              <TouchableOpacity style={[estilos.btn, estilos.btnLista]} {...pressProps(() => onMyList?.(item))}>
                 <Ionicons name="add" size={18} color="#fff" />
                 <Text style={estilos.btnTxt}>Mi lista</Text>
               </TouchableOpacity>
@@ -46,8 +49,9 @@ const estilos = StyleSheet.create({
   wrapper: { width: '100%', paddingHorizontal: 12, marginTop: 10 },
   card: { borderRadius: 12, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.35, shadowOffset: { width: 0, height: 6 }, shadowRadius: 12, elevation: 6, backgroundColor: '#101010' },
   fondo: { width: '100%', aspectRatio: 2/3, justifyContent: 'flex-end' },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)' },
-  contenido: { paddingHorizontal: 14, paddingBottom: 12 },
+  touchFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)', zIndex: 0 },
+  contenido: { paddingHorizontal: 14, paddingBottom: 12, zIndex: 2 },
   titulo: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 8 },
   chips: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' },
   chip: { color: '#ddd', fontSize: 12 },

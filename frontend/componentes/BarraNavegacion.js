@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { pressProps } from '../util/press';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function BarraNavegacion({ label = 'Inicio', onPressBuscar, onPressDescargas }) {
@@ -14,7 +15,7 @@ export default function BarraNavegacion({ label = 'Inicio', onPressBuscar, onPre
       {/* Botones derecha */}
       <View style={estilos.botonesContainer}>
         {/* Botón búsqueda */}
-        <TouchableOpacity style={estilos.boton} onPress={onPressBuscar}>
+        <TouchableOpacity style={estilos.boton} {...pressProps(onPressBuscar)}>
           <Ionicons name="search" size={22} color="#fff" />
         </TouchableOpacity>
       </View>

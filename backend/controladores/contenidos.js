@@ -4,6 +4,12 @@
 const { obtenerTendencias, obtenerVideos, buscarContenidos, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerCreditosTV, obtenerPeliculasPorPagina } = require('../configuracion/tmdb');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('ffmpeg-static');
+if (ffmpegPath) {
+  try { ffmpeg.setFfmpegPath(ffmpegPath); } catch {}
+}
 
 async function obtenerPopulares(req, res) {
   try {
@@ -132,7 +138,12 @@ async function obtenerFuentePeliculaLocal(req, res) {
     if (anio) {
       coincidencias = coincidencias.filter(m => String(m.year) === String(anio));
     }
-    const pelicula = coincidencias[0] || null;
+    // Preferir fuentes MP4 si existen entre las coincidencias
+    const pelicula =
+      (coincidencias || []).find(
+        (m) =>
+          String(m.fileType || '').toLowerCase() === 'mp4' || /\.mp4(\?|$)/i.test(String(m.url || ''))
+      ) || coincidencias[0] || null;
     if (!pelicula) return res.status(404).json({ error: 'No se encontró película local' });
     res.json({ url: pelicula.url, titulo: pelicula.title, logo: pelicula.logo, year: pelicula.year });
   } catch (e) {
@@ -153,7 +164,11 @@ async function obtenerFuenteSerieLocal(req, res) {
     if (episodio) {
       lista = lista.filter(s => String(s.episode) === String(episodio));
     }
-    const cap = lista[0] || null;
+    // Preferir fuentes MP4 si existen entre las coincidencias
+    const cap =
+      (lista || []).find(
+        (s) => String(s.fileType || '').toLowerCase() === 'mp4' || /\.mp4(\?|$)/i.test(String(s.url || ''))
+      ) || lista[0] || null;
     if (!cap) return res.status(404).json({ error: 'No se encontró episodio local' });
     res.json({ url: cap.url, titulo: cap.title, logo: cap.logo, temporada: cap.season, episodio: cap.episode });
   } catch (e) {
@@ -164,3 +179,59 @@ async function obtenerFuenteSerieLocal(req, res) {
 
 module.exports.obtenerFuentePeliculaLocal = obtenerFuentePeliculaLocal;
 module.exports.obtenerFuenteSerieLocal = obtenerFuenteSerieLocal;
+
+// Transcodificar una fuente MKV remota a MP4 en tiempo real (solo para web)
+// GET /contenidos/transcodificar?url=<url_remota>
+async function transcodificarFuente(req, res) {
+  try {
+    const srcUrl = String(req.query.url || '');
+    if (!srcUrl) return res.status(400).json({ error: 'URL requerida' });
+    const ext = srcUrl.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
+    // Solo transcodificar MKV (otras extensiones deben reproducirse directo)
+    if (ext !== 'mkv') return res.status(400).json({ error: 'Solo MKV requiere transcodificación' });
+
+    // Normalizar Dropbox para acceso directo
+    let url = srcUrl.replace('dl.dropbox.com', 'dl.dropboxusercontent.com');
+    if (!/[?&]dl=1/.test(url)) {
+      const sep = url.includes('?') ? '&' : '?';
+      url = `${url}${sep}dl=1`;
+    }
+
+    // Obtener stream de origen
+    const respuesta = await axios.get(url, { responseType: 'stream' });
+    const origenStream = respuesta.data;
+
+    // Encabezados para streaming MP4 fragmentado
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Transfer-Encoding', 'chunked');
+    res.setHeader('Cache-Control', 'no-cache');
+
+    // Configurar ffmpeg: transcodificación rápida y salida fragmentada para reproducir mientras descarga
+    const comando = ffmpeg(origenStream)
+      .videoCodec('libx264')
+      .audioCodec('aac')
+      .format('mp4')
+      .outputOptions([
+        '-preset veryfast',
+        '-movflags frag_keyframe+empty_moov',
+        '-profile:v baseline',
+        '-level 3.0',
+      ])
+      .on('error', (err) => {
+        console.error('Error ffmpeg:', err?.message || err);
+        if (!res.headersSent) res.status(500).json({ error: 'Error al transcodificar fuente' });
+        try { res.end(); } catch {}
+      })
+      .on('end', () => {
+        try { res.end(); } catch {}
+      });
+
+    // Enviar salida al cliente
+    comando.pipe(res, { end: true });
+  } catch (e) {
+    console.error('Error transcodificarFuente:', e?.message || e);
+    if (!res.headersSent) res.status(500).json({ error: 'Error al procesar la fuente' });
+  }
+}
+
+module.exports.transcodificarFuente = transcodificarFuente;

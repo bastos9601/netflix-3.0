@@ -19,41 +19,49 @@ import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { Modal } from 'react-native';
 import ReproductorVideo from '../componentes/ReproductorVideo';
-import ReproductorYouTube from '../componentes/ReproductorYouTube';
-import ReproductorVimeo from '../componentes/ReproductorVimeo';
+import ReproductorTrailerWeb from '../componentes/ReproductorTrailerWeb';
+// Eliminado el uso de reproductores específicos de YouTube/Vimeo para unificar lógica
 import FilaHorizontal from '../componentes/FilaHorizontal';
 import { obtenerPopulares, agregarAMiLista, quitarDeMiLista, verificarEnMiLista, obtenerDetallesSerie, obtenerEpisodiosTemporada, obtenerVideosContenido, obtenerFuentePeliculaLocal, obtenerFuenteSerieLocal, obtenerCalificaciones, eliminarCalificacion } from '../servicios/api';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
+import CONFIGURACION from '../configuracion';
 
 const { width } = Dimensions.get('window');
 
 export default function DetalleContenido({ item, onCerrar }) {
-  // Componente de video compatible con web y móvil (solo lógica, sin tocar diseño)
-  const ComponenteVideo = ({ uri, style, onLoadEnd }) => {
+  // Componente de video compatible con web y móvil, con control de mute
+  const ComponenteVideo = ({ uri, style, onLoadEnd, muted = true }) => {
     if (Platform.OS === 'web') {
-      const mutedUri = uri.includes('?')
-        ? `${uri}&mute=1&autoplay=1&enablejsapi=1&origin=http://localhost:8082`
-        : `${uri}?mute=1&autoplay=1&enablejsapi=1&origin=http://localhost:8082`;
+      const sep = uri.includes('?') ? '&' : '?';
+      // En web evitamos parámetros que pueden causar abortos por política de origen
+      const finalUri = `${uri}${sep}autoplay=1&mute=${muted ? 1 : 0}`;
       return (
         <iframe
-          src={mutedUri}
+          src={finalUri}
           style={{ width: '100%', height: '100%', border: 'none', backgroundColor: '#000' }}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          referrerPolicy="origin"
+          // Usar la política por defecto del navegador; evita bloqueos innecesarios
           allowFullScreen
           onLoad={onLoadEnd}
         />
       );
     } else {
-      const mutedUri = uri.includes('?') ? `${uri}&mute=1&autoplay=1` : `${uri}?mute=1&autoplay=1`;
+      const sep = uri.includes('?') ? '&' : '?';
+      const finalUri = `${uri}${sep}autoplay=1${muted ? '&mute=1' : ''}`;
       const injectedJavaScript = `
         (function() {
           let videoStarted = false;
           function setupVideo(video) {
-            video.muted = true;
-            video.volume = 0;
-            video.setAttribute('muted', 'true');
-            video.setAttribute('autoplay', 'muted');
+            try {
+              video.muted = ${muted ? 'true' : 'false'};
+              video.volume = ${muted ? '0' : '1.0'};
+              if (${muted ? 'true' : 'false'}) {
+                video.setAttribute('muted', 'true');
+                video.setAttribute('autoplay', 'muted');
+              } else {
+                video.removeAttribute('muted');
+              }
+            } catch (e) {}
             ['play', 'playing', 'loadstart'].forEach(eventType => {
               video.addEventListener(eventType, function() {
                 if (!videoStarted) {
@@ -80,8 +88,10 @@ export default function DetalleContenido({ item, onCerrar }) {
           observer.observe(document.body, { childList: true, subtree: true });
           const originalPlay = HTMLVideoElement.prototype.play;
           HTMLVideoElement.prototype.play = function() {
-            this.muted = true;
-            this.volume = 0;
+            try {
+              this.muted = ${muted ? 'true' : 'false'};
+              this.volume = ${muted ? '0' : '1.0'};
+            } catch (e) {}
             if (!videoStarted) {
               videoStarted = true;
               window.ReactNativeWebView.postMessage('video_started');
@@ -107,12 +117,13 @@ export default function DetalleContenido({ item, onCerrar }) {
       `;
       return (
         <WebView
-          source={{ uri: mutedUri }}
+          source={{ uri: finalUri }}
           style={style}
           allowsInlineMediaPlayback={true}
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          allowsFullscreenVideo
           injectedJavaScript={injectedJavaScript}
           onLoadEnd={onLoadEnd}
           onMessage={(event) => {
@@ -148,6 +159,8 @@ export default function DetalleContenido({ item, onCerrar }) {
   const [cargandoEpisodios, setCargandoEpisodios] = useState(false);
   const [player, setPlayer] = useState({ visible: false, url: null, youtubeId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null });
   const [previewTrailer, setPreviewTrailer] = useState({ visible: false, youtubeId: null, vimeoId: null });
+  // Estado de reproducción para trailers en web (react-player)
+  const [webTrailerPlaying, setWebTrailerPlaying] = useState(true);
   const [trailerDisponible, setTrailerDisponible] = useState(false);
 
   const { token, perfilActual } = useAutenticacion();
@@ -288,38 +301,60 @@ export default function DetalleContenido({ item, onCerrar }) {
   };
 
   // Reproducción desde JSON locales
-  const reproducirPelicula = async () => {
+const reproducirPelicula = async () => {
     try {
-      const fuente = await obtenerFuentePeliculaLocal({ titulo: itemActual?.titulo, anio });
+      // Intentos tolerantes para localizar la fuente local de película
+      let fuente = null;
+      try { fuente = await obtenerFuentePeliculaLocal({ titulo: itemActual?.titulo, anio }); } catch (_) {}
+      if (!fuente?.url) {
+        try { fuente = await obtenerFuentePeliculaLocal({ titulo: itemActual?.titulo }); } catch (_) {}
+      }
+      if (!fuente?.url && anio) {
+        try { fuente = await obtenerFuentePeliculaLocal({ anio }); } catch (_) {}
+      }
       if (!fuente?.url) throw new Error('Fuente inválida');
-      // En web, si la fuente parece incompatible (p.ej. MKV/Dropbox), preferir tráiler
       const esWeb = Platform.OS === 'web';
-      const url = String(fuente.url || '');
+      let url = String(fuente.url || '');
+      // Normaliza enlaces de Dropbox para acceso directo
+      url = url.replace('dl.dropbox.com', 'dl.dropboxusercontent.com');
+      if (!/[?&]dl=1/.test(url)) {
+        const sep = url.includes('?') ? '&' : '?';
+        url = `${url}${sep}dl=1`;
+      }
       const extension = url.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
-      const fuenteNoAptaWeb = esWeb && (extension === 'mkv' || url.includes('dropboxusercontent.com'));
-      if (fuenteNoAptaWeb) throw new Error('Fuente no compatible en web');
+      // En web, si es MKV, usar transcodificación en tiempo real a MP4
+      if (esWeb && extension === 'mkv') {
+        const transUrl = `${CONFIGURACION.BASE_URL}/contenidos/transcodificar?url=${encodeURIComponent(url)}`;
+        url = transUrl;
+      }
       setPlayer({ visible: true, url, youtubeId: null, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+      // Ocultar tráiler previo para evitar superposición
+      setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
     } catch (e) {
       try {
         const datos = await obtenerVideosContenido(itemActual?.tipo || 'movie', itemActual?.id);
         const t = datos?.trailer_principal;
         if (t?.site === 'Vimeo' && t?.key) {
           setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: t.key, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+          setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
           return;
         }
         if (t?.site === 'YouTube' && t?.key) {
           setPlayer({ visible: true, url: null, youtubeId: t.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+          setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
           return;
         }
         // fallbacks
         const v = (datos?.videos || []).find(v => v.site === 'Vimeo' && v.key);
         if (v?.key) {
           setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: v.key, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+          setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
           return;
         }
         const y = (datos?.videos || []).find(v => v.site === 'YouTube' && v.key);
         if (y?.key) {
           setPlayer({ visible: true, url: null, youtubeId: y.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: false, temporada: null, epNumero: null });
+          setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
           return;
         }
         Alert.alert('Video no disponible', 'No se encontró un tráiler disponible.');
@@ -338,27 +373,44 @@ export default function DetalleContenido({ item, onCerrar }) {
       const nombreSerie = detallesSerie?.nombre || detallesSerie?.titulo || itemActual?.titulo;
       const fuente = await obtenerFuenteSerieLocal({ nombre: nombreSerie, temporada: temporadaSeleccionada, episodio: epNumero });
       if (!fuente?.url) throw new Error('Fuente inválida');
-      setPlayer({ visible: true, url: fuente.url, youtubeId: null, vimeoId: null, titulo: `${itemActual?.titulo} T${temporadaSeleccionada}E${epNumero}`, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+      const esWeb = Platform.OS === 'web';
+      let url = String(fuente.url || '');
+      url = url.replace('dl.dropbox.com', 'dl.dropboxusercontent.com');
+      if (!/[?&]dl=1/.test(url)) {
+        const sep = url.includes('?') ? '&' : '?';
+        url = `${url}${sep}dl=1`;
+      }
+      const extension = url.split('?')[0].split('#')[0].split('.').pop().toLowerCase();
+      if (esWeb && extension === 'mkv') {
+        const transUrl = `${CONFIGURACION.BASE_URL}/contenidos/transcodificar?url=${encodeURIComponent(url)}`;
+        url = transUrl;
+      }
+      setPlayer({ visible: true, url, youtubeId: null, vimeoId: null, titulo: `${itemActual?.titulo} T${temporadaSeleccionada}E${epNumero}`, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+      setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
     } catch (e) {
       try {
         const datos = await obtenerVideosContenido('tv', itemActual?.id);
         const t = datos?.trailer_principal;
         if (t?.site === 'Vimeo' && t?.key) {
           setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: t.key, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+          setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
           return;
         }
         if (t?.site === 'YouTube' && t?.key) {
           setPlayer({ visible: true, url: null, youtubeId: t.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+          setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
           return;
         }
         const v = (datos?.videos || []).find(v => v.site === 'Vimeo' && v.key);
         if (v?.key) {
           setPlayer({ visible: true, url: null, youtubeId: null, vimeoId: v.key, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+          setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
           return;
         }
         const y = (datos?.videos || []).find(v => v.site === 'YouTube' && v.key);
         if (y?.key) {
           setPlayer({ visible: true, url: null, youtubeId: y.key, vimeoId: null, titulo: itemActual?.titulo, poster: itemActual?.poster, esSerie: true, temporada: temporadaSeleccionada, epNumero });
+          setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null });
           return;
         }
         Alert.alert('Video no disponible', 'No se encontró un tráiler disponible de la serie.');
@@ -478,18 +530,33 @@ export default function DetalleContenido({ item, onCerrar }) {
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
             <Text style={estilos.playerTitulo} numberOfLines={1}>{player.titulo || 'Reproduciendo'}</Text>
-            <View style={{ width: 32 }} />
+            {/* Botón reproducir/pausar para trailers en web */}
+            {Platform.OS === 'web' && (player.youtubeId || player.vimeoId) ? (
+              <TouchableOpacity style={estilos.iconBtn} onPress={() => setWebTrailerPlaying((p) => !p)}>
+                <Ionicons name={webTrailerPlaying ? 'pause' : 'play'} size={20} color="#fff" />
+              </TouchableOpacity>
+            ) : (
+              <View style={{ width: 32 }} />
+            )}
           </View>
-          {player.vimeoId ? (
-            <ReproductorVimeo
-              videoId={player.vimeoId}
-              onClose={() => setPlayer({ visible: false, url: null, youtubeId: null, vimeoId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null })}
-            />
-          ) : player.youtubeId ? (
-            <ReproductorYouTube
-              videoId={player.youtubeId}
-              onClose={() => setPlayer({ visible: false, url: null, youtubeId: null, vimeoId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null })}
-            />
+          {player.vimeoId || player.youtubeId ? (
+            Platform.OS === 'web' ? (
+              <ReproductorTrailerWeb
+                youtubeId={player.youtubeId || null}
+                vimeoId={player.vimeoId || null}
+                playing={webTrailerPlaying}
+                muted={true}
+                style={{ width: '100%', height: '100%' }}
+              />
+            ) : (
+              <ComponenteVideo
+                uri={player.vimeoId
+                  ? `https://player.vimeo.com/video/${player.vimeoId}?title=0&byline=0&portrait=0`
+                  : `https://www.youtube-nocookie.com/embed/${player.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=1&controls=1`}
+                style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+                muted={false}
+              />
+            )
           ) : (
             <ReproductorVideo 
               sourceUrl={player.url}
@@ -521,23 +588,9 @@ export default function DetalleContenido({ item, onCerrar }) {
                     style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
                   />
                 ) : (
-                  <WebView
+                  <ComponenteVideo
+                    uri={`https://www.youtube-nocookie.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1`}
                     style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
-                    source={{
-                      html: `<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\"><style>html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden;}#wrap{width:100%;height:100%;}iframe{width:100%;height:100%;border:0;display:block;}</style></head><body><div id=\"wrap\"><iframe id=\"player\" src=\"https://www.youtube.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1&autoplay=1&mute=1&enablejsapi=1\" allow=\"autoplay; encrypted-media\" allowfullscreen></iframe></div><script>var mode='embed';function fallback(){var p=document.getElementById('player');if(mode==='embed'){p.src='https://www.youtube-nocookie.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1&autoplay=1&mute=1&enablejsapi=1';mode='nocookie';}else if(mode==='nocookie'){p.src='https://m.youtube.com/watch?v=${previewTrailer.youtubeId}&autoplay=1';mode='watch';}}</script><script>var onYouTubeIframeAPIReady,player;</script><script src=\"https://www.youtube.com/iframe_api\"></script><script>onYouTubeIframeAPIReady=function(){try{player=new YT.Player('player',{events:{onReady:function(e){try{e.target.mute();e.target.playVideo();}catch(err){}},onError:function(e){var code=e&&e.data;if(code===101||code===150||code===153||code===5||code===15){fallback();}}}});}catch(err){}</script></body></html>`,
-                      baseUrl: 'https://www.youtube.com',
-                    }}
-                    javaScriptEnabled
-                    domStorageEnabled
-                    mediaPlaybackRequiresUserAction={false}
-                    allowsInlineMediaPlayback
-                    mixedContentMode="always"
-                    allowsFullscreenVideo
-                    originWhitelist={["*"]}
-                    androidLayerType="hardware"
-                    androidHardwareAccelerationDisabled={false}
-                    setSupportMultipleWindows={false}
-                    userAgent={'Mozilla/5.0 (Linux; Android 12; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0 Mobile Safari/537.36'}
                   />
                 )
               ) : previewTrailer.vimeoId ? (

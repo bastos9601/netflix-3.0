@@ -1,12 +1,14 @@
-// Capa de base de datos con soporte para MySQL y Postgres.
-// Mantiene la API pool.query(sql, params) devolviendo [rows] para compatibilidad.
+// Capa de base de datos con soporte para MySQL y Postgres
+// Mantiene la API pool.query(sql, params) devolviendo [rows] para compatibilidad
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 let PgPool;
+// Carga opcional de cliente de Postgres (pg) si está disponible
 try { PgPool = require('pg').Pool; } catch (_) { /* pg puede no estar instalado */ }
 
 const dbClient = (process.env.DB_CLIENT || 'mysql').toLowerCase();
 
+// Resuelve variables de entorno con prioridad y fallback
 function resolveEnv(varNames, fallback) {
   for (const name of varNames) {
     if (process.env[name]) return process.env[name];
@@ -17,6 +19,7 @@ function resolveEnv(varNames, fallback) {
 let pool;
 
 if (dbClient === 'postgres' && PgPool) {
+  // Configuración de conexión para Postgres
   const host = resolveEnv(['PGHOST', 'DB_HOST', 'MYSQL_HOST'], 'localhost');
   const user = resolveEnv(['PGUSER', 'DB_USER', 'MYSQL_USER'], 'postgres');
   const password = resolveEnv(['PGPASSWORD', 'DB_PASSWORD', 'MYSQL_PASSWORD'], '');
@@ -52,6 +55,7 @@ if (dbClient === 'postgres' && PgPool) {
   pool = {
     dbType: 'mysql',
     async query(sql, params = []) {
+      // En MySQL la librería ya soporta placeholders '?'
       return mysqlPool.query(sql, params);
     },
   };

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { pressProps } from '../util/press';
 import { Ionicons } from '@expo/vector-icons';
 
 const items = [
@@ -15,7 +16,7 @@ export default function BarraTabs({ activo = 'inicio', onCambiar }) {
       {items.map((it) => {
         const seleccionado = activo === it.key;
         return (
-          <TouchableOpacity key={it.key} style={estilos.item} onPress={() => onCambiar?.(it.key)}>
+          <TouchableOpacity key={it.key} style={estilos.item} {...pressProps(() => onCambiar?.(it.key))}>
             <Ionicons
               name={it.iconName}
               size={22}

@@ -1,13 +1,13 @@
-# Netflix 2 — Clon Full‑Stack (Expo + Express)
+# Netflix 3.0 — Clon Full‑Stack (Expo + Express)
 
-Proyecto de aprendizaje que replica funcionalidades básicas de Netflix con un frontend en Expo (React Native) y un backend en Express, usando MySQL para persistencia y la API de TMDB para obtener contenidos.
+Proyecto educativo que replica funcionalidades clave de Netflix con un frontend en Expo (React Native/Web) y un backend en Express. Soporta MySQL y PostgreSQL, e integra la API de TMDB para contenidos (populares, búsqueda, detalles y videos/tráilers).
 
 ## Tecnologías usadas
 
 - Frontend: `Expo 54`, `React Native 0.81`, `React 19`, `react-native-web`, `expo-av` (reproducción de video), `expo-status-bar`
 - Backend: `Node.js`, `Express 5`, `cors`, `dotenv`, `axios`
 - Seguridad: `bcryptjs` (hash de contraseñas), `jsonwebtoken` (JWT)
-- Base de datos: `MySQL` con `mysql2/promise`
+- Base de datos: `MySQL` (`mysql2/promise`) o `PostgreSQL` (`pg`), seleccionable por env
 - API externa: `TMDB` (The Movie Database)
 
 ## ¿Cómo funciona?
@@ -15,14 +15,14 @@ Proyecto de aprendizaje que replica funcionalidades básicas de Netflix con un f
 - Autenticación: el backend expone endpoints de registro/inicio de sesión y entrega un `JWT`. El middleware `verificarToken` protege rutas privadas (perfiles, progreso, Mi Lista).
 - Perfiles: cada usuario puede crear/editar/eliminar perfiles. Se listan con el token del usuario.
 - Contenidos: el backend consulta la API de TMDB para tendencias, búsqueda, detalles de series y videos. También hay fuentes locales de prueba (`data/peliculas.json` y `data/series.json`).
-- Reproducción: el frontend usa `expo-av` para reproducir videos; el backend guarda/lee progreso de visualización por perfil.
-- Mi Lista: se agregan/quitan títulos asociados a un perfil y se guardan en MySQL.
+- Reproducción: el frontend usa `expo-av` para reproducir videos; el backend guarda/lee progreso de visualización por perfil. La vista de detalle unifica el reproductor y evita superposiciones que silencian el audio.
+- Mi Lista: se agregan/quitan títulos asociados a un perfil y se guardan en la base de datos.
 - Configuración de API: el frontend detecta automáticamente el host del backend en desarrollo (localhost, IP Expo, `10.0.2.2` en emulador Android) y permite override con `EXPO_PUBLIC_API_URL`.
 
 ## Requisitos
 
 - Node.js 18+ y npm
-- MySQL (con un usuario con permisos de lectura/escritura)
+- MySQL o PostgreSQL (con un usuario con permisos de lectura/escritura)
 - Clave de API de TMDB
 
 ## Instalación y ejecución
@@ -36,14 +36,24 @@ Proyecto de aprendizaje que replica funcionalidades básicas de Netflix con un f
   npm install
   ```
 
-- Crear un archivo `.env` en `backend/` con variables:
+- Crear un archivo `.env` en `backend/` con variables (elige MySQL o Postgres):
 
   ```env
   PORT=3000
+  # Selección del cliente de BD: 'mysql' | 'postgres'
+  DB_CLIENT=mysql
+  # Variables MySQL (si DB_CLIENT=mysql)
   MYSQL_HOST=localhost
   MYSQL_USER=root
   MYSQL_PASSWORD=tu_password
   MYSQL_DB=netflix_clon
+  # Variables Postgres (si DB_CLIENT=postgres)
+  PGHOST=localhost
+  PGUSER=postgres
+  PGPASSWORD=tu_password
+  PGDATABASE=netflix_clon
+  PGPORT=5432
+  # Seguridad y APIs
   JWT_SECRETO=un_secreto_seguro
   TMDB_API_KEY=tu_api_key_de_tmdb
   
@@ -57,7 +67,7 @@ Proyecto de aprendizaje que replica funcionalidades básicas de Netflix con un f
   DEV_EXPOSE_CODES=false
   ```
 
-- Asegúrate de que la base de datos `netflix_clon` exista (el servidor creará tablas si no existen).
+- Asegúrate de que la base de datos `netflix_clon` exista (el servidor creará tablas si no existen) en el motor que elijas.
 
 - Iniciar el servidor:
 
@@ -68,7 +78,7 @@ Proyecto de aprendizaje que replica funcionalidades básicas de Netflix con un f
 - Endpoints principales disponibles (prefijo `http://localhost:3000`):
   - `GET /estado` — health check
   - `POST /autenticacion/registro` — registro
-  - `POST /autenticacion/ingresar` — inicio sesión
+  - `POST /autenticacion/ingreso` — inicio sesión
   - `GET /perfiles` — listar perfiles (JWT)
   - `POST /perfiles` — crear perfil (JWT)
   - `PUT /perfiles/:id` — actualizar perfil (JWT)
@@ -118,7 +128,7 @@ Proyecto de aprendizaje que replica funcionalidades básicas de Netflix con un f
 ```
 backend/
   configuracion/
-    basedatos.js        # Pool MySQL (env)
+    basedatos.js        # Pool con soporte MySQL/Postgres (según env)
     tmdb.js             # Cliente TMDB
   rutas/                # Definición de endpoints
   controladores/        # Lógica de negocio
@@ -162,6 +172,12 @@ frontend/
 - Obtén tu `TMDB_API_KEY` desde https://www.themoviedb.org/settings/api.
 - En redes locales con Expo, verifica que el dispositivo/emulador pueda alcanzar la IP del backend.
 
+## Limpieza de código y cambios recientes
+
+- Se eliminaron componentes de reproductor específicos de plataformas externas que no se usan: `frontend/componentes/ReproductorYouTube.js`, `frontend/componentes/ReproductorVimeo.js` y la pantalla `frontend/pantallas/Reproductor.js` (estaba comentada).
+- La pantalla `DetalleContenido` se refactorizó para usar un único componente de video y evitar overlays que causaban reproducción en silencio.
+- Se añadieron comentarios detallados en archivos clave del frontend (`App.js`, `navegacion/NavegadorPrincipal.js`, `servicios/api.js`) para facilitar el entendimiento línea por línea.
+
 ---
 
-Cualquier mejora, pruebas o nuevas pantallas son bienvenidas. Este proyecto es base para experimentar con arquitectura y features tipo Netflix.
+Sugerencias, mejoras y nuevas pantallas son bienvenidas. Este proyecto sirve como base para experimentar con arquitectura y features tipo Netflix.

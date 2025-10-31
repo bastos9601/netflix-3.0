@@ -35,4 +35,8 @@ router.get('/local/pelicula', contenidosCtrl.obtenerFuentePeliculaLocal);
 // GET /contenidos/local/serie?nombre=...&temporada=...&episodio=...
 router.get('/local/serie', contenidosCtrl.obtenerFuenteSerieLocal);
 
+// Transcodificación en tiempo real de MKV a MP4 (solo web)
+// GET /contenidos/transcodificar?url=<url_remota>
+router.get('/transcodificar', contenidosCtrl.transcodificarFuente);
+
 module.exports = router;

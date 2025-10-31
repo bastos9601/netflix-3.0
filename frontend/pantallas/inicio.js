@@ -212,6 +212,7 @@ export default function Inicio({ onOpenBuscar }) {
             item={filtro === 'tv' ? (seriesPop[0] || hero) : filtro === 'movie' ? (peliculasPop[0] || hero) : hero}
             onPlay={onPlay}
             onMyList={onMyList}
+            onPressBanner={onPressItem}
           />
 
           {/* Listado en carrusel para Películas y Series */}

@@ -10,6 +10,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Modal } from 'react-native';
+import { pressProps } from '../util/press';
 import { listarPerfiles, crearPerfil, eliminarPerfil } from '../servicios/api';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 
@@ -46,7 +47,7 @@ export default function Perfiles({ onElegir }) {
     return (
       <TouchableOpacity
         style={[estilos.tile, modoEditar && estilos.tileEditar]}
-        onPress={() => {
+        {...pressProps(() => {
           if (modoEditar) {
             setPerfilEditando(item);
             setNuevoNombre(item.nombre);
@@ -55,7 +56,7 @@ export default function Perfiles({ onElegir }) {
           } else {
             onElegir?.(item);
           }
-        }}
+        })}
       >
         <View style={estilos.circulo}><Text style={estilos.avatarTxt}>{item.avatar || '🐼'}</Text></View>
         <Text style={estilos.nombre}>{item.nombre}</Text>
@@ -87,11 +88,11 @@ export default function Perfiles({ onElegir }) {
         )}
 
         <View style={estilos.bottomBtns}>
-          <TouchableOpacity style={estilos.btnAccion} onPress={() => { setPerfilEditando(null); setNuevoNombre(''); setAvatarSel(AVATARES[0]); setModalVisible(true); }}>
+          <TouchableOpacity style={estilos.btnAccion} {...pressProps(() => { setPerfilEditando(null); setNuevoNombre(''); setAvatarSel(AVATARES[0]); setModalVisible(true); })}>
             <Text style={estilos.btnIcon}>＋</Text>
             <Text style={estilos.btnLabel}>Agregar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={estilos.btnAccion} onPress={() => setModoEditar((v) => !v)}>
+          <TouchableOpacity style={estilos.btnAccion} {...pressProps(() => setModoEditar((v) => !v))}>
             <Text style={estilos.btnIcon}>✎</Text>
             <Text style={estilos.btnLabel}>Editar</Text>
           </TouchableOpacity>
@@ -111,18 +112,18 @@ export default function Perfiles({ onElegir }) {
             />
             <View style={estilos.avataresFila}>
               {AVATARES.map((a) => (
-                <TouchableOpacity key={a} style={[estilos.avatarOpc, avatarSel === a && estilos.avatarSel]} onPress={() => setAvatarSel(a)}>
+                <TouchableOpacity key={a} style={[estilos.avatarOpc, avatarSel === a && estilos.avatarSel]} {...pressProps(() => setAvatarSel(a))}>
                   <Text style={estilos.avatarTxt}>{a}</Text>
                 </TouchableOpacity>
               ))}
             </View>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 12, justifyContent: 'space-between' }}>
-              <TouchableOpacity style={estilos.btnCancelar} onPress={() => setModalVisible(false)}>
+              <TouchableOpacity style={estilos.btnCancelar} {...pressProps(() => setModalVisible(false))}>
                 <Text style={estilos.btnTxt}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={estilos.btnCrear}
-                onPress={async () => {
+                {...pressProps(async () => {
                   try {
                     if (!nuevoNombre.trim()) return;
                     if (!perfilEditando) {
@@ -139,14 +140,14 @@ export default function Perfiles({ onElegir }) {
                   } catch (e) {
                     setError(perfilEditando ? 'No se pudo editar el perfil' : 'No se pudo crear el perfil');
                   }
-                }}
+                })}
               >
                 <Text style={estilos.btnTxt}>{perfilEditando ? 'Guardar' : 'Crear'}</Text>
               </TouchableOpacity>
               {perfilEditando && (
                 <TouchableOpacity
                   style={estilos.btnEliminar}
-                  onPress={async () => {
+                  {...pressProps(async () => {
                     try {
                       await eliminarPerfil(token, perfilEditando.id);
                       setModalVisible(false);
@@ -156,7 +157,7 @@ export default function Perfiles({ onElegir }) {
                     } catch (e) {
                       setError('No se pudo eliminar el perfil');
                     }
-                  }}
+                  })}
                 >
                   <Text style={estilos.btnTxt}>Eliminar</Text>
                 </TouchableOpacity>

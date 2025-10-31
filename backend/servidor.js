@@ -1,5 +1,5 @@
-// Servidor principal del backend:
-// Configura Express, CORS, rutas y inicializa la base de datos.
+// Servidor principal del backend
+// Configura Express, CORS, rutas y inicializa la base de datos
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -12,16 +12,20 @@ const rutasMiLista = require('./rutas/miLista');
 const rutasCalificaciones = require('./rutas/calificaciones');
 
 const app = express();
+// Habilita CORS para cualquier origen (ajustable en producción)
 app.use(cors({ origin: '*' }));
+// Parseo de JSON en cuerpo de peticiones
 app.use(express.json());
 
 // Inicializar BD (crear tablas si no existen)
 const pool = require('./configuracion/basedatos');
 async function inicializarBD() {
   try {
+    // Detecta motor de BD actual para generar SQL compatible
     const esPg = pool.dbType === 'postgres';
 
     // usuarios
+    // Crea tabla de usuarios con correo único y hash de clave
     await pool.query(
       esPg
         ? `CREATE TABLE IF NOT EXISTS usuarios (
@@ -44,6 +48,7 @@ async function inicializarBD() {
     }
 
     // perfiles
+    // Perfiles por usuario con nombre y avatar opcional
     await pool.query(
       esPg
         ? `CREATE TABLE IF NOT EXISTS perfiles (
@@ -63,6 +68,7 @@ async function inicializarBD() {
     );
 
     // progreso_visualizacion
+    // Guarda el segundo actual de visualización por perfil y contenido
     await pool.query(
       esPg
         ? `CREATE TABLE IF NOT EXISTS progreso_visualizacion (
@@ -84,6 +90,7 @@ async function inicializarBD() {
     );
 
     // mi_lista
+    // Lista personalizada por perfil con título y poster
     await pool.query(
       esPg
         ? `CREATE TABLE IF NOT EXISTS mi_lista (
@@ -109,6 +116,7 @@ async function inicializarBD() {
     );
 
     // calificaciones
+    // Calificaciones con estrellas 0-5 por perfil y contenido
     await pool.query(
       esPg
         ? `CREATE TABLE IF NOT EXISTS calificaciones (
@@ -132,6 +140,7 @@ async function inicializarBD() {
     );
 
     // codigos_ingreso
+    // Códigos de login sin contraseña (passwordless) por usuario/correo
     await pool.query(
       esPg
         ? `CREATE TABLE IF NOT EXISTS codigos_ingreso (
@@ -157,10 +166,12 @@ async function inicializarBD() {
            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`
     );
     if (esPg) {
+      // Índice para búsqueda rápida de correo+codigo
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_correo_codigo ON codigos_ingreso (correo, codigo);`);
     }
 
     // tokens_reset
+    // Tokens para restablecer contraseña con expiración y uso
     await pool.query(
       esPg
         ? `CREATE TABLE IF NOT EXISTS tokens_reset (
@@ -186,6 +197,7 @@ async function inicializarBD() {
            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`
     );
     if (esPg) {
+      // Índice para búsquedas de tokens
       await pool.query(`CREATE INDEX IF NOT EXISTS idx_token ON tokens_reset (token);`);
     }
 
@@ -200,11 +212,13 @@ async function inicializarBD() {
   }
 }
 
+// Endpoint básico para comprobar estado del servidor
 app.get('/estado', (req, res) => {
   res.json({ ok: true });
 });
 
 // Rutas
+// Monta módulos de rutas por funcionalidad
 app.use('/autenticacion', rutasAuth);
 app.use('/perfiles', rutasPerfiles);
 app.use('/contenidos', rutasContenidos);
@@ -213,6 +227,7 @@ app.use('/mi-lista', rutasMiLista);
 app.use('/calificaciones', rutasCalificaciones);
 
 const PORT = process.env.PORT || 3000;
+// Inicia servidor y ejecuta inicialización de BD
 app.listen(PORT, async () => {
   await inicializarBD();
   console.log(`Servidor backend escuchando en puerto ${PORT}`);

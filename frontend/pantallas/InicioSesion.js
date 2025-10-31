@@ -35,7 +35,7 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
   const [nuevaClave, setNuevaClave] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [resetEnviado, setResetEnviado] = useState(false);
-  const { setToken } = useAutenticacion();
+  const { setToken, setPerfilActual } = useAutenticacion();
   const [verClave, setVerClave] = useState(false);
 
   const handleLogin = async () => {
@@ -47,7 +47,9 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
         return;
       }
       const { token } = await ingresarUsuario({ correo, clave });
+      // Al ingresar siempre forzar selección de perfil de nuevo
       setToken(token);
+      try { setPerfilActual(null); } catch {}
       onExito?.();
     } catch (e) {
       const msg = (e && e.message) || '';
@@ -209,7 +211,9 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
                   setError('');
                   if (!correo || !codigo) { setError('Ingresa correo y código.'); return; }
                   const { token } = await ingresarConCodigo({ correo, codigo });
+                  // Al ingresar siempre forzar selección de perfil de nuevo
                   setToken(token);
+                  try { setPerfilActual(null); } catch {}
                   onExito?.();
                 } catch (e) {
                   setError(e.message || 'Código inválido');

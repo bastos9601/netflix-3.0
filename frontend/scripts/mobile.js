@@ -54,17 +54,26 @@ function main() {
   const raiz = path.resolve(__dirname, '..');
   const rutaEstado = path.join(raiz, '.db_target');
   const objetivo = resolverObjetivoBD(process.argv.slice(2), rutaEstado);
+  const args = process.argv.slice(2);
 
   const PUERTOS = { pg: 3000, mysql: 3001 };
   const ip = obtenerIpLocal();
   const apiUrl = `http://${ip}:${PUERTOS[objetivo]}`;
 
-  console.log(`Usando base de datos: ${objetivo.toUpperCase()} -> ${apiUrl}`);
-  console.log('Arrancando Expo en modo LAN para uso con Expo Go...');
+  // Modo de conexión: por defecto TUNNEL para funcionar entre distintas redes
+  const usarTunnel = args.includes('--tunnel') || (!args.includes('--lan') && !args.includes('--local'));
+  const modo = usarTunnel ? 'tunnel' : (args.includes('--lan') ? 'lan' : 'local');
 
-  const child = spawn('npm', ['run', 'start', '--', '--lan'], {
+  // Determinar URL del backend para la app móvil: priorizar variable de entorno si está definida
+  const apiUrlFinal = process.env.EXPO_PUBLIC_API_URL || apiUrl;
+
+  console.log(`Usando base de datos: ${objetivo.toUpperCase()} -> ${apiUrlFinal}`);
+  console.log(`Arrancando Expo en modo ${modo.toUpperCase()} para uso con Expo Go...`);
+
+  const cliArgs = ['run', 'start', '--', `--${modo}`];
+  const child = spawn('npm', cliArgs, {
     cwd: raiz,
-    env: { ...process.env, EXPO_PUBLIC_API_URL: apiUrl },
+    env: { ...process.env, EXPO_PUBLIC_API_URL: apiUrlFinal },
     stdio: 'inherit',
     shell: process.platform === 'win32',
   });

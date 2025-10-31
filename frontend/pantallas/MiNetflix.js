@@ -10,16 +10,17 @@
  * - Recibe `onOpenBuscar` para abrir el buscador global.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Image, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Image, Alert, Modal, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import BarraNavegacion from '../componentes/BarraNavegacion';
 import FilaHorizontal from '../componentes/FilaHorizontal';
 import DetalleContenido from './DetalleContenido';
 import { useAutenticacion } from '../contextos/ContextoAutenticacion';
 import { obtenerMiLista, listarPerfiles, actualizarPerfil, obtenerCalificaciones, quitarDeMiLista, eliminarCalificacion } from '../servicios/api';
+import { pressProps } from '../util/press';
 
 export default function MiNetflix({ onOpenBuscar }) {
-  const { token, setToken, usuario, perfiles, setPerfiles, perfilActual, setPerfilActual } = useAutenticacion();
+  const { token, setToken, usuario, perfiles, setPerfiles, perfilActual, setPerfilActual, cerrarSesion } = useAutenticacion();
   const [miLista, setMiLista] = useState([]);
   const [historialVisto, setHistorialVisto] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -94,10 +95,18 @@ export default function MiNetflix({ onOpenBuscar }) {
   }, [token]);
 
   const manejarCerrarSesion = () => {
-    Alert.alert('Cerrar Sesión', '¿Estás seguro de que quieres cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar Sesión', style: 'destructive', onPress: () => setToken(null) },
-    ]);
+    if (Platform.OS === 'web') {
+      // En web usar confirm nativo del navegador
+      if (window.confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+        cerrarSesion();
+      }
+    } else {
+      // En móvil usar Alert.alert
+      Alert.alert('Cerrar Sesión', '¿Estás seguro de que quieres cerrar sesión?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cerrar Sesión', style: 'destructive', onPress: cerrarSesion },
+      ]);
+    }
   };
 
   const manejarCambiarPerfil = (perfil) => {
@@ -230,7 +239,7 @@ export default function MiNetflix({ onOpenBuscar }) {
               <Ionicons name="notifications-outline" size={18} color="#fff" />
               <Text style={estilos.accionTxt}>Notificaciones</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[estilos.accionBtn, { backgroundColor: '#E50914' }]} onPress={manejarCerrarSesion}>
+            <TouchableOpacity style={[estilos.accionBtn, { backgroundColor: '#E50914' }]} {...pressProps(manejarCerrarSesion)}>
               <Ionicons name="log-out-outline" size={18} color="#fff" />
               <Text style={estilos.accionTxt}>Cerrar sesión</Text>
             </TouchableOpacity>

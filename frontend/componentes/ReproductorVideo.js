@@ -23,15 +23,22 @@
  * - `seasonNumber`: número de temporada actual
  * - `onSelectEpisode`: callback al seleccionar episodio
  */
+// Importa React y hooks necesarios para referencias, efectos y estado
 import React, { useRef, useEffect, useState } from 'react';
+// Importa componentes y utilidades de UI de React Native
 import { View, StyleSheet, ActivityIndicator, Platform, Text, StatusBar, Dimensions, TouchableOpacity, FlatList, Image } from 'react-native';
+// Importa el hook y la vista del reproductor de video de Expo
 import { useVideoPlayer, VideoView } from 'expo-video';
+// Importa utilidades de eventos de Expo para escuchar cambios del player
 import { useEvent } from 'expo';
+// Importa control de orientación de pantalla para bloquear landscape
 import * as ScreenOrientation from 'expo-screen-orientation';
+// Importa íconos de Ionicons para botones de control
 import { Ionicons } from '@expo/vector-icons';
 
 // Reproductor de video embebido
 // Soporta URLs directas (mp4/m3u8). En web, HLS depende del navegador.
+// Componente ReproductorVideo con soporte para episodios
 export default function ReproductorVideo({
   sourceUrl,
   poster,
@@ -44,30 +51,44 @@ export default function ReproductorVideo({
   seasonNumber,
   onSelectEpisode,
 }) {
+  // Referencia al componente de video para acciones nativas (fullscreen)
   const videoRef = useRef(null);
+  // Estado de carga (spinner/overlay)
   const [cargando, setCargando] = useState(true);
+  // Estado de error de reproducción
   const [error, setError] = useState(null);
+  // Bandera de si la pantalla está en landscape
   const [isLandscape, setIsLandscape] = useState(false);
+  // Guardado de orientación original (informativo)
   const [originalOrientation, setOriginalOrientation] = useState(null);
+  // Control para mostrar/ocultar panel de episodios
   const [showEpisodes, setShowEpisodes] = useState(false);
 
   // Inicializar el reproductor con expo-video
+  // Inicializa el player con la fuente actual y configura propiedades
   const player = useVideoPlayer(sourceUrl || null, (p) => {
-    p.loop = false;
+    p.loop = false; // Evita bucle por defecto
+    // En web, iniciar silenciado para cumplir políticas de autoplay
+    try { p.muted = Platform.OS === 'web' ? true : false; } catch {}
+    try { p.volume = Platform.OS === 'web' ? 0 : 1; } catch {}
     if (autoPlay) {
       try { p.play(); } catch {}
     }
   });
 
   // Escuchar estado de reproducción y errores
+  // Escucha cambios de reproducción (play/pause)
   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
+  // Escucha cambios de estado y errores del reproductor
   const { status, error: playerError } = useEvent(player, 'statusChange', { status: player.status, error: player.error });
 
+  // Reinicia estados de carga/error al cambiar la fuente de video
   useEffect(() => {
     setCargando(true);
     setError(null);
   }, [sourceUrl]);
 
+  // Si el reproductor reporta error, actualiza el estado de error
   useEffect(() => {
     if (playerError) {
       setError('No se pudo reproducir el video');
@@ -75,6 +96,7 @@ export default function ReproductorVideo({
     }
   }, [playerError]);
 
+  // Cuando el reproductor está listo o está reproduciendo, quita el overlay de carga
   useEffect(() => {
     if (status === 'ready' || isPlaying) {
       setCargando(false);
@@ -82,6 +104,7 @@ export default function ReproductorVideo({
   }, [status, isPlaying]);
 
   // Forzar orientación horizontal al iniciar el reproductor
+  // Gestiona la orientación: fuerza landscape al entrar y restaura al salir
   useEffect(() => {
     const setupOrientation = async () => {
       try {
@@ -119,6 +142,7 @@ export default function ReproductorVideo({
   }, [sourceUrl]);
 
   // Detectar orientación y alternar fullscreen en landscape
+  // Suscribe cambios de dimensiones y orientación para detectar landscape
   useEffect(() => {
     let sub;
     const updateFromDims = () => {
@@ -145,6 +169,7 @@ export default function ReproductorVideo({
     };
   }, []);
 
+  // Alterna fullscreen según orientación si la opción está habilitada
   useEffect(() => {
     if (!autoFullscreenOnLandscape) return;
     if (isLandscape) {
@@ -255,21 +280,22 @@ export default function ReproductorVideo({
   );
 }
 
+// Hoja de estilos del reproductor y panel de episodios
 const estilos = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-  player: { flex: 1, backgroundColor: '#000' },
-  overlayCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  overlayBottom: { position: 'absolute', left: 12, right: 12, bottom: 16, alignItems: 'center' },
-  fallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  topBar: { position: 'absolute', top: 8, left: 8, right: 8, zIndex: 30, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  iconBtn: { backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16 },
-  episodesPanel: { position: 'absolute', zIndex: 35, backgroundColor: 'rgba(0,0,0,0.9)', borderLeftWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  episodesPanelLandscape: { top: 0, right: 0, bottom: 0, width: Math.min(360, Math.round(Dimensions.get('window').width * 0.42)) },
-  episodesPanelPortrait: { left: 0, right: 0, bottom: 0, maxHeight: Math.round(Dimensions.get('window').height * 0.5) },
-  epHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  epHeaderTxt: { color: '#fff', fontWeight: '800' },
-  epRow: { flexDirection: 'row', gap: 10, alignItems: 'center', padding: 10 },
-  epRowActivo: { backgroundColor: 'rgba(229,9,20,0.08)' },
-  epThumb: { width: 96, height: 54, borderRadius: 6, marginRight: 6, backgroundColor: '#222' },
-  epTitulo: { color: '#fff', fontWeight: '700' },
+  root: { flex: 1, backgroundColor: '#000' }, // Contenedor raíz
+  player: { flex: 1, backgroundColor: '#000' }, // Área del video
+  overlayCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }, // Overlay centrado
+  overlayBottom: { position: 'absolute', left: 12, right: 12, bottom: 16, alignItems: 'center' }, // Overlay inferior
+  fallback: { flex: 1, alignItems: 'center', justifyContent: 'center' }, // Vista de fallback cuando no hay fuente
+  topBar: { position: 'absolute', top: 8, left: 8, right: 8, zIndex: 30, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }, // Barra superior
+  iconBtn: { backgroundColor: 'rgba(0,0,0,0.4)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16 }, // Botones de icono
+  episodesPanel: { position: 'absolute', zIndex: 35, backgroundColor: 'rgba(0,0,0,0.9)', borderLeftWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }, // Panel episodios base
+  episodesPanelLandscape: { top: 0, right: 0, bottom: 0, width: Math.min(360, Math.round(Dimensions.get('window').width * 0.42)) }, // Panel para landscape
+  episodesPanelPortrait: { left: 0, right: 0, bottom: 0, maxHeight: Math.round(Dimensions.get('window').height * 0.5) }, // Panel para portrait
+  epHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }, // Cabecera del panel
+  epHeaderTxt: { color: '#fff', fontWeight: '800' }, // Texto cabecera
+  epRow: { flexDirection: 'row', gap: 10, alignItems: 'center', padding: 10 }, // Fila episodio
+  epRowActivo: { backgroundColor: 'rgba(229,9,20,0.08)' }, // Resaltado episodio activo
+  epThumb: { width: 96, height: 54, borderRadius: 6, marginRight: 6, backgroundColor: '#222' }, // Miniatura episodio
+  epTitulo: { color: '#fff', fontWeight: '700' }, // Título episodio
 });
