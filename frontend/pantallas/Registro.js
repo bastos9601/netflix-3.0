@@ -65,20 +65,23 @@ export default function Registro({ onCancel, onExito }) {
         />
         {error ? <Text style={estilos.error}>{error}</Text> : null}
 
+        {/* Valida los datos del usuario. */}
         <TouchableOpacity
           style={[estilos.boton, enviando && { opacity: 0.75 }]}
           disabled={enviando}
           onPress={async () => {
             try {
-              setEnviando(true);
-              setError('');
+              setEnviando(true); //indica que el proceso está en curso (por ejemplo, muestra un loader).
+               setError('');  // limpia errores anteriores.
               if (!nombre || !correo || !clave) {
                 setError('Completa todos los campos.');
                 return;
-              }
-              await registrarUsuario({ nombre, correo, clave });
+               } //Comprueba que los campos requeridos (nombre, correo, clave) no estén vacíos Si falta alguno,
+               //  muestra un mensaje de error y detiene la ejecución (return)..
+              await registrarUsuario({ nombre, correo, clave }); //Llama a la función registrarUsuario, que envía los datos al backend para crear una nueva cuenta.
               // Iniciar sesión automáticamente tras registrar
               try {
+                // Si el login devuelve un token, lo guarda (por ejemplo, para autenticar futuras peticiones
                 const login = await ingresarUsuario({ correo, clave });
                 if (login?.token) {
                   setToken(login.token);
@@ -90,6 +93,8 @@ export default function Registro({ onCancel, onExito }) {
                 console.error('Auto-login falló:', eLogin);
                 setError('Cuenta creada, pero hubo un problema al iniciar sesión. Intenta desde "Iniciar sesión".');
               }
+              //Si ocurre algún error en el registro o login, se manejan con try...catch
+              //  Muestra mensajes distintos según el tipo de error
             } catch (e) {
               console.error('Error registro:', e);
               const msg = (e && e.message) || '';
@@ -101,6 +106,7 @@ export default function Registro({ onCancel, onExito }) {
             } finally {
               setEnviando(false);
             }
+            // Se ejecuta siempre al final, haya o no error, para indicar que el proceso terminó y reactivar el botón
           }}
         >
           <Text style={estilos.botonTxt}>Comienza ya</Text>

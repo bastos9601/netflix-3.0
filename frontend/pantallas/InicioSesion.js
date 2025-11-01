@@ -15,6 +15,14 @@
  * - `onCancelar`: volver atrás.
  * - `onIrRegistro`: navegación hacia registro.
  */
+
+// Función de login (modo contraseña):
+//             - Se ejecuta desde el onPress del botón "Iniciar sesión".
+//             - Llama a ingresarUsuario({ correo, clave }) de servicios/api.
+//             - Si la respuesta trae token: setToken(token) y onExito?.() para continuar.
+//             - Maneja errores de red y credenciales; deshabilita el botón con "enviando".
+
+
 import React, { useState } from 'react';
 import { SafeAreaView, View, Text, TextInput, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +40,7 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
   const [codigo, setCodigo] = useState('');
   const [codigoEnviado, setCodigoEnviado] = useState(false);
   const [tokenReset, setTokenReset] = useState('');
+  
   const [nuevaClave, setNuevaClave] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [resetEnviado, setResetEnviado] = useState(false);
@@ -137,29 +146,36 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
         {error ? <Text style={estilos.error}>{error}</Text> : null}
 
         {modo === 'password' && (
+          //funcion del boton iniciar secion
           <TouchableOpacity
             style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
             disabled={enviando}
             onPress={async () => {
               try {
-                setEnviando(true);
-                setError('');
+                setEnviando(true);//Indica que el proceso de inicio está en curso
+                setError(''); //Limpia errores previos
+                //Verifica que el usuario haya llenado el correo y la clave.
+                //Si falta alguno, muestra un mensaje de error y detiene la ejecución
                 if (!correo || !clave) {
                   setError('Completa correo y clave.');
                   return;
-                }
+                }  
+                //Llama a la función ingresarUsuario (probablemente hace una petición al servidor).
                 const { token } = await ingresarUsuario({ correo, clave });
-                setToken(token);
-                onExito?.();
+                setToken(token); //Si la respuesta incluye un token, se guarda con setToken(token) (ese token se usa para mantener la sesión activa).
+                onExito?.(); //llama cuando el inicio de sesión fue exitoso
+                //Si algo falla (por ejemplo, conexión o credenciales incorrectas), muestra un mensaje apropiado.
               } catch (e) {
                 const msg = (e && e.message) || '';
+                //Distingue entre error de red y error de autenticación.
                 if (msg.includes('Network request failed')) {
                   setError('No se pudo conectar al servidor. Revisa tu red/BASE_URL.');
                 } else {
                   setError('Credenciales inválidas o error al ingresar.');
                 }
-              } finally {
-                setEnviando(false);
+                
+              } finally   {  
+                setEnviando(false); //para reactivar el botón y volverlo a usar.
               }
             }}
           >
@@ -172,7 +188,7 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
             <TouchableOpacity
               style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
               disabled={enviando}
-              onPress={async () => {
+            onPress={async () => {
                 try {
                   setEnviando(true);
                   setError('');
@@ -193,7 +209,7 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
             <TouchableOpacity
               style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
               disabled={enviando}
-              onPress={async () => {
+            onPress={async () => {
                 try {
                   setEnviando(true);
                   setError('');
@@ -219,6 +235,7 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
               style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
               disabled={enviando}
               onPress={async () => {
+                // Paso 1: solicitar token/enlace de restablecimiento al correo
                 try {
                   setEnviando(true);
                   setError('');
@@ -240,6 +257,7 @@ export default function InicioSesion({ onExito, onCancelar, onIrRegistro }) {
               style={[estilos.botonRojo, enviando && { opacity: 0.8 }]}
               disabled={enviando}
               onPress={async () => {
+                // Paso 2: enviar token y nueva clave para actualizar
                 try {
                   setEnviando(true);
                   setError('');

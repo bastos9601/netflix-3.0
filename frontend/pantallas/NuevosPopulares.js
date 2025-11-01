@@ -15,7 +15,7 @@ import FilaHorizontal from '../componentes/FilaHorizontal';
 import DetalleContenido from './DetalleContenido';
 import { obtenerPopulares } from '../servicios/api';
 
-const CHIPS = ['Todo', 'Películas', 'Series', 'Tendencias'];
+const CHIPS = ['Todo', 'Pelícu', 'Series', 'Tendencias', ];
 
 export default function NuevosPopulares({ onOpenBuscar }) {
   const [chipSeleccionado, setChipSeleccionado] = useState('Todo');

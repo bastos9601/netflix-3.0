@@ -194,6 +194,7 @@ export default function Inicio({ onOpenBuscar }) {
               onPress={() => setMostrarCategorias(true)}
             >
               <Text style={estilos.chipTxt}>Categorías</Text>
+              
             </TouchableOpacity>
           </View>
 
