@@ -7,7 +7,7 @@ const items = [
   { key: 'juegos', label: 'Juegos', iconName: 'game-controller-outline' },
   { key: 'nuevos', label: 'Nuevos y popular', iconName: 'newspaper-outline' },
   { key: 'mi', label: 'Mi Netflix', iconName: 'person-circle' },
-  // { key: 'hugo', label: 'Hugo', iconName: 'person-outline' },
+  { key: 'hugo', label: 'Hugo', iconName: 'person-outline' },
 ];
 
 export default function BarraTabs({ activo = 'inicio', onCambiar }) {

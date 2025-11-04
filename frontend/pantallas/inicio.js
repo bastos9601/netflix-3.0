@@ -195,7 +195,8 @@ export default function Inicio({ onOpenBuscar }) {
             >
               <Text style={estilos.chipTxt}>Categorías</Text>
               
-            </TouchableOpacity>
+            </TouchableOpacity> 
+            
           </View>
 
           {/* Hero (dinámico por filtro) */}
