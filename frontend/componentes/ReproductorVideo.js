@@ -27,6 +27,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 // Importa componentes y utilidades de UI de React Native
 import { View, StyleSheet, ActivityIndicator, Platform, Text, StatusBar, Dimensions, TouchableOpacity, FlatList, Image } from 'react-native';
+// Importa WebView para renderizar video HTML en web
+import { WebView } from 'react-native-webview';
 // Importa el hook y la vista del reproductor de video de Expo
 import { useVideoPlayer, VideoView } from 'expo-video';
 // Importa utilidades de eventos de Expo para escuchar cambios del player
@@ -63,14 +65,16 @@ export default function ReproductorVideo({
   const [originalOrientation, setOriginalOrientation] = useState(null);
   // Control para mostrar/ocultar panel de episodios
   const [showEpisodes, setShowEpisodes] = useState(false);
+  // Preferencia de mute: en la pantalla de video NO debe estar silenciado
+  const [mutedPref, setMutedPref] = useState(false);
 
   // Inicializar el reproductor con expo-video
   // Inicializa el player con la fuente actual y configura propiedades
   const player = useVideoPlayer(sourceUrl || null, (p) => {
     p.loop = false; // Evita bucle por defecto
-    // En web, iniciar silenciado para cumplir políticas de autoplay
-    try { p.muted = Platform.OS === 'web' ? true : false; } catch {}
-    try { p.volume = Platform.OS === 'web' ? 0 : 1; } catch {}
+    // Configurar mute/volumen según preferencia actual
+    try { p.muted = !!mutedPref; } catch {}
+    try { p.volume = mutedPref ? 0 : 1; } catch {}
     if (autoPlay) {
       try { p.play(); } catch {}
     }
@@ -86,6 +90,11 @@ export default function ReproductorVideo({
   useEffect(() => {
     setCargando(true);
     setError(null);
+    // Al cambiar de fuente, asegurar que el estado de mute se aplica
+    try {
+      player.muted = !!mutedPref;
+      player.volume = mutedPref ? 0 : 1;
+    } catch {}
   }, [sourceUrl]);
 
   // Si el reproductor reporta error, actualiza el estado de error
@@ -102,6 +111,16 @@ export default function ReproductorVideo({
       setCargando(false);
     }
   }, [status, isPlaying]);
+
+  // Aplicar cambios de mute preferido al reproductor cuando se togglean
+  useEffect(() => {
+    try {
+      player.muted = !!mutedPref;
+      player.volume = mutedPref ? 0 : 1;
+    } catch {}
+  }, [mutedPref]);
+
+  // (revert) La actualización de fuente se maneja con remount usando key para estabilidad
 
   // Forzar orientación horizontal al iniciar el reproductor
   // Gestiona la orientación: fuerza landscape al entrar y restaura al salir
@@ -189,14 +208,50 @@ export default function ReproductorVideo({
   return (
     <View style={estilos.root}>
       {sourceUrl ? (
-        <VideoView
-          ref={videoRef}
-          style={estilos.player}
-          player={player}
-          allowsFullscreen
-          allowsPictureInPicture
-          contentFit="contain"
-        />
+        Platform.OS === 'web' ? (
+          // En web, usar WebView con video HTML para maximizar compatibilidad con streams
+          <WebView
+            key={sourceUrl || 'sin-fuente'}
+            style={{ flex: 1, backgroundColor: '#000' }}
+            source={{
+              html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                  <style>
+                    body { margin: 0; padding: 0; background: #000; }
+                    video { width: 100%; height: 100vh; object-fit: contain; }
+                  </style>
+                </head>
+                <body>
+                  <video 
+                    src="${sourceUrl}" 
+                    ${autoPlay ? 'autoplay' : ''} 
+                    controls 
+                    preload="metadata"
+                  ></video>
+                </body>
+                </html>
+              `
+            }}
+            allowsFullscreenVideo={true}
+            mediaPlaybackRequiresUserAction={false}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+          />
+        ) : (
+          <VideoView
+            ref={videoRef}
+            // Forzar remount cuando cambia la fuente para evitar estados atascados
+            key={sourceUrl || 'sin-fuente'}
+            style={estilos.player}
+            player={player}
+            allowsFullscreen
+            allowsPictureInPicture
+            contentFit="contain"
+          />
+        )
       ) : (
         <View style={estilos.fallback}><Text style={{ color: '#fff' }}>Sin fuente de video</Text></View>
       )}
@@ -207,16 +262,30 @@ export default function ReproductorVideo({
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          style={estilos.iconBtn}
-          onPress={() => {
-            try {
-              if (isPlaying) { player.pause(); } else { player.play(); }
-            } catch {}
-          }}
-        >
-          <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#fff" />
-        </TouchableOpacity>
+        {Platform.OS !== 'web' && (
+          <>
+            <TouchableOpacity
+              style={estilos.iconBtn}
+              onPress={() => {
+                try {
+                  const playingNow = !!player?.playing;
+                  if (playingNow) { player.pause(); } else { player.play(); }
+                } catch {}
+              }}
+            >
+              <Ionicons name={isPlaying ? 'pause' : 'play'} size={20} color="#fff" />
+            </TouchableOpacity>
+            {/* Toggle de mute para móvil */}
+            <TouchableOpacity
+              style={estilos.iconBtn}
+              onPress={() => {
+                setMutedPref((m) => !m);
+              }}
+            >
+              <Ionicons name={mutedPref ? 'volume-mute' : 'volume-high'} size={20} color="#fff" />
+            </TouchableOpacity>
+          </>
+        )}
         {Array.isArray(episodes) && episodes.length > 0 && (
           <TouchableOpacity style={estilos.iconBtn} onPress={() => setShowEpisodes((v) => !v)}>
             {/* icono hamburguesa */}

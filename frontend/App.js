@@ -5,8 +5,9 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 // Importa el hook useEffect para ejecutar efectos al montar el componente
 import { useEffect } from 'react';
-// Importa el módulo de audio de Expo para configurar reproducción de sonido
-import { Audio } from 'expo-av';
+// Importa el módulo de audio moderno de Expo para configurar reproducción de sonido
+import { Audio } from 'expo-audio';
+import { Platform } from 'react-native';
 // Importa el navegador principal que gestiona el flujo de pantallas
 import NavegadorPrincipal from './navegacion/NavegadorPrincipal';
 // Importa el proveedor de autenticación que expone el contexto a toda la app
@@ -18,14 +19,21 @@ export default function App() {
     // Configurar modo de audio para asegurar que el sonido se reproduzca correctamente
     const setupAudio = async () => {
       try {
-        // Configura el modo de audio para iOS y Android, permitiendo reproducción en silencio y mezcla con otras apps
-        await Audio.setAudioModeAsync({
-          playsInSilentModeIOS: true, // iOS: permite reproducir aunque el dispositivo esté en modo silencio
-          staysActiveInBackground: true, // Mantiene el audio activo en segundo plano
-          interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_MIX_WITH_OTHERS, // Mezcla con otros audios en iOS
-          interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS, // Atenúa otros audios en Android
-          shouldDuckAndroid: true, // Android: habilita el ducking
-        });
+        // Configuración por plataforma para evitar valores inválidos en SDK recientes
+        if (Platform.OS === 'ios') {
+          await Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            // Evitar establecer interruptionModeIOS si no es compatible
+          });
+        } else if (Platform.OS === 'android') {
+          await Audio.setAudioModeAsync({
+            shouldDuckAndroid: true,
+            staysActiveInBackground: false,
+            // Evitar interruptionModeAndroid si la librería no lo soporta
+          });
+        } else {
+          // En web no hace falta configurar el modo de audio
+        }
         // Habilita globalmente el subsistema de audio de Expo
         await Audio.setIsEnabledAsync(true);
       } catch (e) {

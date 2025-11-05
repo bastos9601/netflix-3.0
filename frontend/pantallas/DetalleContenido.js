@@ -39,7 +39,7 @@ export default function DetalleContenido({ item, onCerrar }) {
         <iframe
           src={finalUri}
           style={{ width: '100%', height: '100%', border: 'none', backgroundColor: '#000' }}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
           // Usar la política por defecto del navegador; evita bloqueos innecesarios
           allowFullScreen
           onLoad={onLoadEnd}
@@ -123,7 +123,14 @@ export default function DetalleContenido({ item, onCerrar }) {
           mediaPlaybackRequiresUserAction={false}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          originWhitelist={["*"]}
+          mixedContentMode="always"
           allowsFullscreenVideo
+          setSupportMultipleWindows={false}
+          onShouldStartLoadWithRequest={() => true}
+          userAgent={
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1'
+          }
           injectedJavaScript={injectedJavaScript}
           onLoadEnd={onLoadEnd}
           onMessage={(event) => {
@@ -160,7 +167,6 @@ export default function DetalleContenido({ item, onCerrar }) {
   const [player, setPlayer] = useState({ visible: false, url: null, youtubeId: null, titulo: null, poster: null, esSerie: false, temporada: null, epNumero: null });
   const [previewTrailer, setPreviewTrailer] = useState({ visible: false, youtubeId: null, vimeoId: null });
   // Estado de reproducción para trailers en web (react-player)
-  const [webTrailerPlaying, setWebTrailerPlaying] = useState(true);
   const [trailerDisponible, setTrailerDisponible] = useState(false);
 
   const { token, perfilActual } = useAutenticacion();
@@ -530,33 +536,17 @@ const reproducirPelicula = async () => {
               <Ionicons name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
             <Text style={estilos.playerTitulo} numberOfLines={1}>{player.titulo || 'Reproduciendo'}</Text>
-            {/* Botón reproducir/pausar para trailers en web */}
-            {Platform.OS === 'web' && (player.youtubeId || player.vimeoId) ? (
-              <TouchableOpacity style={estilos.iconBtn} onPress={() => setWebTrailerPlaying((p) => !p)}>
-                <Ionicons name={webTrailerPlaying ? 'pause' : 'play'} size={20} color="#fff" />
-              </TouchableOpacity>
-            ) : (
-              <View style={{ width: 32 }} />
-            )}
+            {/* Espaciador a la derecha */}
+            <View style={{ width: 32 }} />
           </View>
           {player.vimeoId || player.youtubeId ? (
-            Platform.OS === 'web' ? (
-              <ReproductorTrailerWeb
-                youtubeId={player.youtubeId || null}
-                vimeoId={player.vimeoId || null}
-                playing={webTrailerPlaying}
-                muted={true}
-                style={{ width: '100%', height: '100%' }}
-              />
-            ) : (
-              <ComponenteVideo
-                uri={player.vimeoId
-                  ? `https://player.vimeo.com/video/${player.vimeoId}?title=0&byline=0&portrait=0`
-                  : `https://www.youtube-nocookie.com/embed/${player.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=1&controls=1`}
-                style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
-                muted={false}
-              />
-            )
+            <ComponenteVideo
+              uri={player.vimeoId
+                ? `https://player.vimeo.com/video/${player.vimeoId}?title=0&byline=0&portrait=0`
+                : `https://www.youtube-nocookie.com/embed/${player.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=1&controls=1`}
+              style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+              muted={false}
+            />
           ) : (
             <ReproductorVideo 
               sourceUrl={player.url}
@@ -582,36 +572,15 @@ const reproducirPelicula = async () => {
           {previewTrailer.visible && (
             <View style={estilos.trailerOverlayInline}>
               {previewTrailer.youtubeId ? (
-                Platform.OS === 'web' ? (
-                  <ComponenteVideo
-                    uri={`https://www.youtube.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1`}
-                    style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
-                  />
-                ) : (
-                  <ComponenteVideo
-                    uri={`https://www.youtube-nocookie.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1`}
-                    style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
-                  />
-                )
+                <ComponenteVideo
+                  uri={`https://www.youtube-nocookie.com/embed/${previewTrailer.youtubeId}?playsinline=1&modestbranding=1&rel=0&fs=0&controls=1`}
+                  style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+                />
               ) : previewTrailer.vimeoId ? (
-                Platform.OS === 'web' ? (
-                  <iframe
-                    title="vimeo"
-                    src={`https://player.vimeo.com/video/${previewTrailer.vimeoId}?autoplay=1&muted=1&title=0&byline=0&portrait=0`}
-                    allow="autoplay; fullscreen; picture-in-picture"
-                    frameBorder="0"
-                    style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
-                  />
-                ) : (
-                  <WebView
-                    style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
-                    source={{ uri: `https://player.vimeo.com/video/${previewTrailer.vimeoId}?autoplay=1&muted=1&title=0&byline=0&portrait=0` }}
-                    javaScriptEnabled
-                    domStorageEnabled
-                    mediaPlaybackRequiresUserAction={false}
-                    allowsInlineMediaPlayback
-                  />
-                )
+                <ComponenteVideo
+                  uri={`https://player.vimeo.com/video/${previewTrailer.vimeoId}?title=0&byline=0&portrait=0`}
+                  style={{ width: '100%', height: '100%', backgroundColor: '#000' }}
+                />
               ) : null}
               <TouchableOpacity style={estilos.trailerCloseBtn} onPress={() => setPreviewTrailer({ visible: false, youtubeId: null, vimeoId: null })}>
                 <Ionicons name="close" size={18} color="#fff" />
@@ -631,10 +600,6 @@ const reproducirPelicula = async () => {
                 <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
-          </View>
-          {/* Subtítulo simulado */}
-          <View style={estilos.captionWrap}>
-            <Text style={estilos.captionTxt}>{/* El banco me desahuciará si no pago la renta.*/} Hola quieres ser mi tilina 😳</Text>
           </View>
 
 
@@ -776,8 +741,15 @@ const reproducirPelicula = async () => {
 }
 
 const estilos = StyleSheet.create({
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000' },
-  topMedia: { width, height: width * 0.56, backgroundColor: '#111', overflow: 'hidden' },
+  overlay: {
+     position: 'absolute',
+     top: 0, left: 0, right: 0, bottom: 0,
+     backgroundColor: '#000' },
+  topMedia: {
+     width: '100%', 
+     aspectRatio: 16/9, 
+     backgroundColor: '#111', 
+     overflow: 'hidden' },
   mediaImg: { width: '100%', height: '100%' },
   mediaOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   topBar: { position: 'absolute', top: 8, left: 8, right: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
